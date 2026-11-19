@@ -6,9 +6,12 @@ import { IOtherPlayer } from "../types/screen-objects/IOtherPlayer";
 import { Point2D } from "../utils/geometry/Point2D";
 import { Player as PlayerMessage, PlayerUpdate } from "../types/socketEvents";
 import { ImageManager } from "../utils/ImageManager";
+import { Pose, PoseBuffer } from "../utils/PoseBuffer";
 
 export class OtherPlayer extends ScreenObject implements IOtherPlayer {
   private _bloodImage: HTMLImageElement | null = null;
+  private _poses: PoseBuffer;
+  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
 
   private _rotation: number = 0;
   private _name: string;
@@ -44,6 +47,12 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
 
     this._name = playerData.username;
     this._rotation = rotation;
+    this._poses = new PoseBuffer(
+      world.snapshotTime,
+      point.x,
+      point.y,
+      rotation,
+    );
 
     // Load blood texture
     const imageManager = ImageManager.getInstance();
@@ -72,6 +81,10 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
     if (this._invulnerableTimer > 0) {
       this._invulnerableTimer = Math.max(0, this._invulnerableTimer - dt);
     }
+
+    const pose = this._poses.sample(this.world.renderTime, this._pose);
+    this._point.setTo(pose.x, pose.y);
+    this._rotation = pose.rotation;
   }
 
   draw(ctx: CanvasRenderingContext2D, uiCtx: CanvasRenderingContext2D): void {
@@ -274,8 +287,13 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
 
   applyFromGameStateDelta(playerDelta: PlayerUpdate): void {
     if (playerDelta.position) {
-      this._point.setTo(playerDelta.position.x, playerDelta.position.y);
-      this._rotation = playerDelta.position.rotation;
+      // Shown smoothly by update(), slightly behind the server
+      this._poses.push(
+        this.world.snapshotTime,
+        playerDelta.position.x,
+        playerDelta.position.y,
+        playerDelta.position.rotation,
+      );
     }
     if (playerDelta.lives) {
       this._lives = playerDelta.lives.lives;

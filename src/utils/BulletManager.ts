@@ -84,7 +84,12 @@ export class BulletManager implements IBulletManager {
     if (!bullet.active) {
       const lifetime =
         config.BULLET_AFTERLIFE_MS_BY_WEAPON_TYPE[bullet.weaponType];
-      const millisecondsPassed = Math.max(0, Date.now() - bullet.deletedAt);
+      // deletedAt is server time, so compare against the server-time render
+      // clock rather than this computer's clock, which may be off
+      const millisecondsPassed = Math.max(
+        0,
+        this.world.renderTime - bullet.deletedAt,
+      );
       if (millisecondsPassed >= lifetime) {
         this._bullets.delete(bullet.id);
         return;
@@ -118,12 +123,23 @@ export class BulletManager implements IBulletManager {
     return this._bulletsSoundCache.has(cacheKey);
   }
 
+  update(_dt: number): void {
+    // The server no longer streams bullet positions: fly them locally
+    const renderTime = this.world.renderTime;
+    const walls = this.world.walls;
+    for (const bullet of this._bullets.values()) {
+      bullet.advance(renderTime, walls);
+    }
+  }
+
   draw(ctx: CanvasRenderingContext2D, uiCtx: CanvasRenderingContext2D): void {
-    this.bullets.forEach((bullet) => {
+    const renderTime = this.world.renderTime;
+    // Deleting the current entry while iterating a Map is safe
+    for (const bullet of this._bullets.values()) {
       if (!bullet.active) {
         const lifetime =
           config.BULLET_AFTERLIFE_MS_BY_WEAPON_TYPE[bullet.weaponType];
-        const millisecondsPassed = Math.max(0, Date.now() - bullet.deletedAt);
+        const millisecondsPassed = Math.max(0, renderTime - bullet.deletedAt);
         if (millisecondsPassed >= lifetime) {
           this._bullets.delete(bullet.id);
           this._bulletsSoundCache.delete(
@@ -134,12 +150,12 @@ export class BulletManager implements IBulletManager {
             ),
           );
           this._bulletsRemovedSoundCache.delete(bullet.id);
-          return;
+          continue;
         }
         bullet.draw(ctx, uiCtx, millisecondsPassed);
       } else {
         bullet.draw(ctx, uiCtx);
       }
-    });
+    }
   }
 }

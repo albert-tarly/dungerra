@@ -276,7 +276,8 @@ export class Game {
       return;
     }
 
-    const dt = (timestamp - this._lastTime) / 1000;
+    // The first frame has no previous one; don't count the time since page load
+    const dt = this._lastTime ? (timestamp - this._lastTime) / 1000 : 0;
     this._lastTime = timestamp;
 
     this._world?.handleInput(this._activeKeys, dt);

@@ -3,6 +3,7 @@ import { Vector2D } from "../utils/geometry/Vector2D";
 import * as config from "../config";
 import { IBullet } from "../types/screen-objects/IBullet";
 import { IPoint } from "../types/geometry/IPoint";
+import { IScreenObject } from "../types/screen-objects/IScreenObject";
 import { IWorld } from "../types/IWorld";
 import { Point2D } from "../utils/geometry/Point2D";
 import { Bullet as BulletMessage } from "../types/socketEvents";
@@ -14,6 +15,11 @@ export class Bullet extends ScreenObject implements IBullet {
   private _active: boolean = true;
   private _deletedAt: number = 0;
   private _weaponType: config.WeaponType = "blaster";
+  // Where and when (server ms) the flight was last reported by the server
+  private _origin: Point2D = new Point2D(0, 0);
+  private _originTime: number = 0;
+  // Reached a wall locally; the server's removal follows shortly
+  private _stopped: boolean = false;
   private static _imageRocket: HTMLImageElement | null = null;
   private static _imageRocketBlast: HTMLImageElement | null = null;
 
@@ -102,8 +108,60 @@ export class Bullet extends ScreenObject implements IBullet {
 
     bullet._weaponType = bulletData.weaponType as config.WeaponType;
     bullet._deletedAt = Number(bulletData.deletedAt ?? 0);
+    bullet._origin = new Point2D(bullet.x, bullet.y);
+    bullet._originTime = world.snapshotTime;
 
     return bullet;
+  }
+
+  // Blaster shots and rockets fly; for hitscan shots (railgun, shotgun) the
+  // velocity is the whole beam, drawn in place for a moment
+  private get isFlying(): boolean {
+    return (
+      this._active &&
+      !this._stopped &&
+      (this._weaponType === "blaster" || this._weaponType === "rocket_launcher")
+    );
+  }
+
+  advance(renderTime: number, walls: IScreenObject[]): void {
+    if (!this.isFlying) {
+      return;
+    }
+
+    // Velocity is in units per second; the server moves bullets in a straight line
+    const seconds = Math.max(0, renderTime - this._originTime) / 1000;
+    const x = this._origin.x + this._velocity.x * seconds;
+    const y = this._origin.y + this._velocity.y * seconds;
+
+    for (const wall of walls) {
+      // A wall's rectangle lies within width + height of its anchor point;
+      // skip far walls before building the rectangle
+      const reach = wall.width + wall.height;
+      if (Math.abs(x - wall.x) > reach || Math.abs(y - wall.y) > reach) {
+        continue;
+      }
+      const rect = wall.getCollisionRect();
+      if (
+        x >= rect.left &&
+        x <= rect.left + rect.width &&
+        y >= rect.top &&
+        y <= rect.top + rect.height
+      ) {
+        // Hold at the last position outside the wall until the server's removal arrives
+        this._stopped = true;
+        return;
+      }
+    }
+
+    this._point.setTo(x, y);
+  }
+
+  rebase(x: number, y: number, time: number): void {
+    this._point.setTo(x, y);
+    this._origin.setTo(x, y);
+    this._originTime = time;
+    this._stopped = false;
   }
 
   draw(

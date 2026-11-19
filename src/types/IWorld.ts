@@ -22,6 +22,12 @@ export interface IWorld {
   torchRadius: number;
   debug: boolean;
   multiplayerMode: "host" | "guest";
+  /** Server time (ms) of the delta being applied; timestamps new server data. */
+  snapshotTime: number;
+  /** Server time (ms) the world is drawn at: slightly in the past, see INTERPOLATION_DELAY_MS. */
+  renderTime: number;
+  /** Whether a torch carried by a player lights `point` (within the torch radius + padding). */
+  isLitByTorch(point: IPoint, padding: number): boolean;
   toggleDebug(): void;
   toggleInventory(): void;
   openShopModal(): void;

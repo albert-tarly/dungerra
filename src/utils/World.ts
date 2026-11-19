@@ -27,6 +27,26 @@ import { IShop, IShopFactory } from "../types/screen-objects/IShop";
 import { ImageManager } from "./ImageManager";
 import { IRay, IRayFactory } from "../types/screen-objects/IRay";
 import { angleDifference } from "./angleDifference";
+import { EntityCollection } from "./EntityCollection";
+import { serverClock } from "./ServerClock";
+import { IScreenObject } from "../types/screen-objects/IScreenObject";
+
+// Compares two pressed-key maps without serialising them every frame
+function sameKeySet(
+  a: { [key: number]: boolean },
+  b: { [key: number]: boolean },
+): boolean {
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) {
+    return false;
+  }
+  for (const key of aKeys) {
+    if (a[Number(key)] !== b[Number(key)]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export class World implements IWorld {
   private readonly CHUNK_SIZE = 2000; // Same as screen width for now
@@ -34,11 +54,19 @@ export class World implements IWorld {
   private _otherPlayers: Record<string, IOtherPlayer> = {};
   private _otherPlayerCoordinates: Record<string, IPoint> = {};
 
-  private _enemies: IEnemy[] = [];
-  private _walls: IWall[] = [];
-  private _bonuses: IBonus[] = [];
-  private _shops: IShop[] = [];
-  private _rays: IRay[] = [];
+  // Indexed by ID: deltas look entities up by ID many times per update
+  private _enemies = new EntityCollection<IEnemy>();
+  private _walls = new EntityCollection<IWall>();
+  private _bonuses = new EntityCollection<IBonus>();
+  private _shops = new EntityCollection<IShop>();
+  private _rays = new EntityCollection<IRay>();
+
+  // Server time (ms) of the delta being applied, and the server time the
+  // world is currently drawn at; see INTERPOLATION_DELAY_MS
+  private _snapshotTime: number = serverClock.now();
+  private _renderTime: number = serverClock.now();
+  // Torch points of the players whose light reveals things, per frame
+  private _torchPoints: IPoint[] = [];
 
   private _gameOver: boolean = false;
 
@@ -94,23 +122,77 @@ export class World implements IWorld {
   }
 
   get walls(): IWall[] {
-    return this._walls;
+    return this._walls.list;
   }
 
   get enemies(): IEnemy[] {
-    return this._enemies;
+    return this._enemies.list;
   }
 
   get bonuses(): IBonus[] {
-    return this._bonuses;
+    return this._bonuses.list;
   }
 
   get shops(): IShop[] {
-    return this._shops;
+    return this._shops.list;
   }
 
   get rays(): IRay[] {
-    return this._rays;
+    return this._rays.list;
+  }
+
+  get snapshotTime(): number {
+    return this._snapshotTime;
+  }
+
+  get renderTime(): number {
+    return this._renderTime;
+  }
+
+  isLitByTorch(point: IPoint, padding: number): boolean {
+    const maxDistance = this._torchRadius + padding;
+    for (const torchPoint of this._torchPoints) {
+      if (point.distanceTo(torchPoint) <= maxDistance) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Same lights as the old per-enemy check: the current player's torch, plus
+  // living other players without night vision
+  private updateTorchPoints(): void {
+    this._torchPoints = [];
+    if (!this._player) {
+      return;
+    }
+    this._torchPoints.push(this._player.getTorchPoint());
+    for (const otherPlayer of Object.values(this._otherPlayers)) {
+      if (otherPlayer.isAlive() && !otherPlayer.hasNightVision()) {
+        this._torchPoints.push(otherPlayer.getTorchPoint());
+      }
+    }
+  }
+
+  // Whether an object is in or near the view; far objects are not drawn
+  private isNearView(object: IScreenObject): boolean {
+    const halfWidth = viewport.width / 2 + config.DRAW_CULL_MARGIN;
+    const halfHeight = viewport.height / 2 + config.DRAW_CULL_MARGIN;
+    // Cheap reject on the anchor point before building the collision rect
+    const reach = object.width + object.height;
+    if (
+      Math.abs(object.x - this._cameraPoint.x) > halfWidth + reach ||
+      Math.abs(object.y - this._cameraPoint.y) > halfHeight + reach
+    ) {
+      return false;
+    }
+    const rect = object.getCollisionRect();
+    return (
+      rect.left <= this._cameraPoint.x + halfWidth &&
+      rect.left + rect.width >= this._cameraPoint.x - halfWidth &&
+      rect.top <= this._cameraPoint.y + halfHeight &&
+      rect.top + rect.height >= this._cameraPoint.y - halfHeight
+    );
   }
 
   get cameraPoint(): IPoint {
@@ -173,17 +255,31 @@ export class World implements IWorld {
   update(dt: number): void {
     if (this.gameOver) return;
 
+    // Everything is drawn slightly in the past so there is usually a newer
+    // server update to blend toward
+    this._renderTime = serverClock.now() - config.INTERPOLATION_DELAY_MS;
+
     // Update player
     if (this._player) {
       this._player.update(dt);
 
       // Update camera position
-      this._cameraPoint = this._player.getPosition().clone();
+      this._cameraPoint.setToPointCoordinates(this._player.getPosition());
     }
 
     for (const otherPlayer of Object.values(this._otherPlayers)) {
       otherPlayer.update(dt);
     }
+
+    for (const enemy of this._enemies.list) {
+      enemy.update(dt);
+    }
+
+    for (const ray of this._rays.list) {
+      ray.update(dt);
+    }
+
+    this._bulletManager.update(dt);
   }
 
   endGame(): void {
@@ -271,34 +367,54 @@ export class World implements IWorld {
     lightCtx: CanvasRenderingContext2D,
     uiCtx: CanvasRenderingContext2D,
   ): void {
-    // Clear the canvas
-    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    // Game.draw has already cleared all canvases
+
+    this.updateTorchPoints();
 
     this.drawFloor(ctx);
 
+    // The client keeps 3×3 chunks of objects but the view shows about one
+    // chunk, so most walls, enemies and shops are skipped here
+
     // Draw shops
-    this._shops.forEach((shop) => shop.draw(ctx, uiCtx));
+    for (const shop of this._shops.list) {
+      if (this.isNearView(shop)) {
+        shop.draw(ctx, uiCtx);
+      }
+    }
 
     // Draw walls
-    this._walls.forEach((wall) => wall.draw(ctx, uiCtx));
+    for (const wall of this._walls.list) {
+      if (this.isNearView(wall)) {
+        wall.draw(ctx, uiCtx);
+      }
+    }
 
     // Draw enemies
-    this._enemies.forEach((enemy) => enemy.draw(ctx, uiCtx));
+    for (const enemy of this._enemies.list) {
+      if (this.isNearView(enemy)) {
+        enemy.draw(ctx, uiCtx);
+      }
+    }
 
     Object.values(this._otherPlayers).forEach((otherPlayer) => {
       otherPlayer.draw(ctx, uiCtx);
     });
 
     // Draw bonuses
-    this._bonuses.forEach((bonus) => bonus.draw(ctx, uiCtx));
+    for (const bonus of this._bonuses.list) {
+      if (this.isNearView(bonus)) {
+        bonus.draw(ctx, uiCtx);
+      }
+    }
 
     // Draw player
     if (this._player) {
       this._player.draw(ctx, uiCtx);
     }
 
-    // Draw rays
-    this._rays.forEach((ray) => ray.draw(ctx, uiCtx));
+    // Draw rays (lines may cross the view from far away, so not culled)
+    this._rays.list.forEach((ray) => ray.draw(ctx, uiCtx));
 
     // Draw bullets
     this._bulletManager.draw(ctx, uiCtx);
@@ -394,7 +510,7 @@ export class World implements IWorld {
     }
 
     if (!this.gameOver) {
-      const playersBonuses = this._bonuses.filter(
+      const playersBonuses = this._bonuses.list.filter(
         (bonus) => bonus.belongsToPlayer,
       );
 
@@ -475,15 +591,15 @@ export class World implements IWorld {
 
     this._player.drawUI(ctx);
 
-    this._shops.forEach((shop) => shop.drawUI(ctx));
+    this._shops.list.forEach((shop) => shop.drawUI(ctx));
 
     if (this.debug) {
       const worldObjectsCount =
-        this._enemies.length +
-        this._walls.length +
-        this._bonuses.length +
-        this._shops.length +
-        this._rays.length +
+        this._enemies.list.length +
+        this._walls.list.length +
+        this._bonuses.list.length +
+        this._shops.list.length +
+        this._rays.list.length +
         Object.values(this._otherPlayers).length +
         (this._player ? 1 : 0);
 
@@ -542,11 +658,6 @@ export class World implements IWorld {
       return;
     }
 
-    const players = [
-      this._player,
-      ...this.otherPlayers.filter((p) => p.isAlive() && !p.hasNightVision()),
-    ];
-
     const torchRadius =
       this._torchRadius * 0.97 + Math.random() * this._torchRadius * 0.06;
 
@@ -554,8 +665,10 @@ export class World implements IWorld {
     ctx.fillRect(0, 0, viewport.width, viewport.height);
     ctx.globalCompositeOperation = "destination-out";
 
-    players.forEach((player) => {
-      const torchPoint = this.worldToScreenCoordinates(player.getTorchPoint());
+    // Same lights as isLitByTorch: this player (alive here) and living
+    // others without night vision
+    this._torchPoints.forEach((worldTorchPoint) => {
+      const torchPoint = this.worldToScreenCoordinates(worldTorchPoint);
 
       const gradient = ctx.createRadialGradient(
         torchPoint.x,
@@ -568,9 +681,16 @@ export class World implements IWorld {
       gradient.addColorStop(0, config.COLOR_LIGHT);
       gradient.addColorStop(1, config.COLOR_TRANSPARENT);
 
+      // The gradient is fully transparent beyond torchRadius, so filling just
+      // its bounding square looks the same as filling the whole screen at a
+      // fraction of the pixels. Filled twice on purpose: the light is the
+      // result of two passes.
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, viewport.width, viewport.height);
-      ctx.fillRect(0, 0, viewport.width, viewport.height);
+      const left = torchPoint.x - torchRadius;
+      const top = torchPoint.y - torchRadius;
+      const size = torchRadius * 2;
+      ctx.fillRect(left, top, size, size);
+      ctx.fillRect(left, top, size, size);
     });
     ctx.globalCompositeOperation = "source-over";
   }
@@ -656,10 +776,8 @@ export class World implements IWorld {
       left !== this._previousInputState.left ||
       right !== this._previousInputState.right ||
       shoot !== this._previousInputState.shoot ||
-      JSON.stringify(itemKey) !==
-        JSON.stringify(this._previousInputState.itemKey) ||
-      JSON.stringify(purchaseItemKey) !==
-        JSON.stringify(this._previousInputState.purchaseItemKey);
+      !sameKeySet(itemKey, this._previousInputState.itemKey) ||
+      !sameKeySet(purchaseItemKey, this._previousInputState.purchaseItemKey);
 
     // The mouse moves constantly, so aim-only updates are throttled
     const previousAim = this._previousInputState.aimRotation;
@@ -730,6 +848,9 @@ export class World implements IWorld {
     }
 
     this._lastChangesetTimestamp = Number(changeset.timestamp);
+    // Entities timestamp the poses and bullets in this delta with it
+    this._snapshotTime = this._lastChangesetTimestamp;
+    serverClock.observe(this._snapshotTime);
     const hadNoBullets = this._player ? this._player.bulletsLeft === 0 : false;
 
     for (const addedPlayer of Object.values(changeset.addedPlayers)) {
@@ -769,9 +890,8 @@ export class World implements IWorld {
     }
 
     for (const addedWall of Object.values(changeset.addedWalls)) {
-      const wall = this._walls.find((w) => w.id === addedWall.id);
-      if (!wall) {
-        this._walls.push(
+      if (!this._walls.has(addedWall.id)) {
+        this._walls.set(
           new this._Wall(
             this,
             new Point2D(addedWall.position!.x, addedWall.position!.y),
@@ -785,32 +905,26 @@ export class World implements IWorld {
     }
 
     for (const removedWallId of changeset.removedWalls) {
-      this._walls = this._walls.filter((w) => w.id !== removedWallId);
+      this._walls.delete(removedWallId);
     }
 
     for (const addedEnemy of Object.values(changeset.addedEnemies)) {
-      let enemy = this._enemies.find((e) => e.id === addedEnemy.id);
       const wall = addedEnemy.wallId
-        ? this._walls.find((wall) => wall.id === addedEnemy.wallId)
+        ? this._walls.get(addedEnemy.wallId)
         : undefined;
 
-      enemy = new this._Enemy(this, addedEnemy, wall);
-      this._enemies = this._enemies
-        .filter((e) => e.id !== addedEnemy.id)
-        .concat([enemy]);
+      // Replaces an existing enemy with the same ID
+      this._enemies.set(new this._Enemy(this, addedEnemy, wall));
     }
 
     for (const [updatedEnemyId, updatedEnemy] of Object.entries(
       changeset.updatedEnemies,
     )) {
-      const enemy = this._enemies.find((e) => e.id === updatedEnemyId);
-      if (enemy) {
-        enemy.applyFromGameStateDelta(updatedEnemy);
-      }
+      this._enemies.get(updatedEnemyId)?.applyFromGameStateDelta(updatedEnemy);
     }
 
     for (const removedEnemyId of changeset.removedEnemies) {
-      this._enemies = this._enemies.filter((e) => e.id !== removedEnemyId);
+      this._enemies.delete(removedEnemyId);
     }
 
     for (const addedBonus of Object.values(changeset.addedBonuses)) {
@@ -818,9 +932,8 @@ export class World implements IWorld {
         continue;
       }
 
-      const bonus = this._bonuses.find((b) => b.id === addedBonus.id);
-      if (!bonus) {
-        this._bonuses.push(new this._Bonus(this, addedBonus));
+      if (!this._bonuses.has(addedBonus.id)) {
+        this._bonuses.set(new this._Bonus(this, addedBonus));
       }
     }
 
@@ -828,7 +941,7 @@ export class World implements IWorld {
       changeset.updatedBonuses,
     )) {
       if (updatedBonus.pickedUpBy) {
-        this._bonuses = this._bonuses.filter((b) => b.id !== updatedBonusId);
+        this._bonuses.delete(updatedBonusId);
         if (
           updatedBonus.pickedUpBy === this._player?.id &&
           !this._bonusPickupCache.has(updatedBonusId)
@@ -840,7 +953,7 @@ export class World implements IWorld {
     }
 
     for (const removedBonusId of changeset.removedBonuses) {
-      this._bonuses = this._bonuses.filter((b) => b.id !== removedBonusId);
+      this._bonuses.delete(removedBonusId);
     }
 
     for (const addedBullet of Object.values(changeset.addedBullets)) {
@@ -864,13 +977,14 @@ export class World implements IWorld {
       this._bulletManager.applyFromGameState(addedBullet);
     }
 
+    // Current servers leave this empty and bullets fly locally; older ones
+    // still stream positions, which restart the local flight
     for (const [bulletId, bulletData] of Object.entries(
       changeset.updatedBullets,
     )) {
-      const existingBullet = this._bulletManager.getBulletById(bulletId);
-      if (existingBullet) {
-        existingBullet.getPosition().setTo(bulletData.x, bulletData.y);
-      }
+      this._bulletManager
+        .getBulletById(bulletId)
+        ?.rebase(bulletData.x, bulletData.y, this._snapshotTime);
     }
 
     for (const bulletData of Object.values(changeset.removedBullets)) {
@@ -897,33 +1011,27 @@ export class World implements IWorld {
     }
 
     for (const addedShopData of Object.values(changeset.addedShops)) {
-      const shop = this._shops.find((s) => s.id === addedShopData.id);
-      if (!shop) {
-        this._shops.push(new this._Shop(this, addedShopData));
+      if (!this._shops.has(addedShopData.id)) {
+        this._shops.set(new this._Shop(this, addedShopData));
       }
     }
 
     for (const [updatedShopId, updatedShop] of Object.entries(
       changeset.updatedShops,
     )) {
-      const shop = this._shops.find((s) => s.id === updatedShopId);
-      if (shop) {
-        shop.applyFromGameStateDelta(updatedShop);
-      }
+      this._shops.get(updatedShopId)?.applyFromGameStateDelta(updatedShop);
     }
 
     for (const removedShopId of changeset.removedShops) {
-      this._shops = this._shops.filter((s) => s.id !== removedShopId);
+      this._shops.delete(removedShopId);
     }
 
     for (const addedPlayerShopId of changeset.addedPlayersShops) {
-      const shop = this._shops.find((s) => s.id === addedPlayerShopId);
-      shop?.handlePlayerEnter();
+      this._shops.get(addedPlayerShopId)?.handlePlayerEnter();
     }
 
     for (const removedPlayerShopId of changeset.removedPlayersShops) {
-      const shop = this._shops.find((s) => s.id === removedPlayerShopId);
-      shop?.handlePlayerExit();
+      this._shops.get(removedPlayerShopId)?.handlePlayerExit();
     }
 
     for (const [id, coordinates] of Object.entries(
@@ -940,23 +1048,19 @@ export class World implements IWorld {
     }
 
     for (const addedRayData of Object.values(changeset.addedRays)) {
-      const ray = this._rays.find((r) => r.id === addedRayData.id);
-      if (!ray) {
-        this._rays.push(new this._Ray(this, addedRayData));
+      if (!this._rays.has(addedRayData.id)) {
+        this._rays.set(new this._Ray(this, addedRayData));
       }
     }
 
     for (const [updatedRayId, updatedRay] of Object.entries(
       changeset.updatedRays,
     )) {
-      const ray = this._rays.find((r) => r.id === updatedRayId);
-      if (ray) {
-        ray.applyFromGameStateDelta(updatedRay);
-      }
+      this._rays.get(updatedRayId)?.applyFromGameStateDelta(updatedRay);
     }
 
     for (const removedRayId of changeset.removedRays) {
-      this._rays = this._rays.filter((r) => r.id !== removedRayId);
+      this._rays.delete(removedRayId);
     }
   }
 
@@ -965,7 +1069,7 @@ export class World implements IWorld {
   }
 
   openShopModal(): void {
-    this._shops.forEach((shop) => {
+    this._shops.list.forEach((shop) => {
       if (shop.hasPlayer() && !shop.isModalOpen) {
         shop.openModal();
       }
@@ -973,7 +1077,7 @@ export class World implements IWorld {
   }
 
   closeShopModal(): void {
-    this._shops.forEach((shop) => {
+    this._shops.list.forEach((shop) => {
       if (shop.hasPlayer() && shop.isModalOpen) {
         shop.closeModal();
       }
@@ -981,6 +1085,8 @@ export class World implements IWorld {
   }
 
   isPlayerInShop(): boolean {
-    return this._shops.some((shop) => shop.hasPlayer() && shop.isModalOpen);
+    return this._shops.list.some(
+      (shop) => shop.hasPlayer() && shop.isModalOpen,
+    );
   }
 }

@@ -13,8 +13,11 @@ import {
 import { SessionPlayer } from "../types/session";
 import { Point2D } from "../utils/geometry/Point2D";
 import { ImageManager } from "../utils/ImageManager";
+import { Pose, PoseBuffer } from "../utils/PoseBuffer";
 
 export class Player extends ScreenObject implements IPlayer {
+  private _poses: PoseBuffer;
+  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
   private _nightVisionTimer: number = 0;
   private _rotation: number = 0;
   private _bulletsLeft: number = config.PLAYER_MAX_BULLETS;
@@ -108,6 +111,12 @@ export class Player extends ScreenObject implements IPlayer {
     super(point, config.PLAYER_SIZE, config.PLAYER_SIZE, id);
 
     this._rotation = rotation;
+    this._poses = new PoseBuffer(
+      world.snapshotTime,
+      point.x,
+      point.y,
+      rotation,
+    );
 
     // Load inventory texture
     const imageManager = ImageManager.getInstance();
@@ -158,6 +167,12 @@ export class Player extends ScreenObject implements IPlayer {
     if (this._nightVisionTimer > 0) {
       this._nightVisionTimer = Math.max(0, this._nightVisionTimer - dt);
     }
+
+    // The camera follows this position, so blending it between server
+    // updates is what keeps the whole screen from shaking
+    const pose = this._poses.sample(this.world.renderTime, this._pose);
+    this._point.setTo(pose.x, pose.y);
+    this._rotation = pose.rotation;
   }
 
   draw(ctx: CanvasRenderingContext2D, uiCtx: CanvasRenderingContext2D): void {
@@ -470,8 +485,13 @@ export class Player extends ScreenObject implements IPlayer {
     }
 
     if (changeset.position) {
-      this.getPosition().setTo(changeset.position.x, changeset.position.y);
-      this._rotation = changeset.position.rotation;
+      // Shown smoothly by update(), slightly behind the server
+      this._poses.push(
+        this.world.snapshotTime,
+        changeset.position.x,
+        changeset.position.y,
+        changeset.position.rotation,
+      );
     }
 
     if (changeset.lives) {

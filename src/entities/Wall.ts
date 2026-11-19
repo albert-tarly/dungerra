@@ -36,8 +36,12 @@ export class Wall extends ScreenObject implements IWall {
       this.getLeftTopCorner()
     );
 
-    uiCtx.save();
-    uiCtx.translate(screenLeftTop.x, screenLeftTop.y);
+    // The UI layer is only drawn on in debug mode; skip its transforms otherwise
+    const debug = this.world.debug;
+    if (debug) {
+      uiCtx.save();
+      uiCtx.translate(screenLeftTop.x, screenLeftTop.y);
+    }
     ctx.save();
     ctx.translate(screenLeftTop.x, screenLeftTop.y);
 
@@ -51,13 +55,15 @@ export class Wall extends ScreenObject implements IWall {
     if (this._orientation === "vertical") {
       ctx.rotate(Math.PI / 2);
       ctx.translate(0, -this.width);
-      uiCtx.rotate(Math.PI / 2);
-      uiCtx.translate(0, -this.width);
+      if (debug) {
+        uiCtx.rotate(Math.PI / 2);
+        uiCtx.translate(0, -this.width);
+      }
     }
 
     ctx.drawImage(this.image, 0, 0, width, height);
 
-    if (this.world.debug) {
+    if (debug) {
       uiCtx.strokeStyle = "red";
       uiCtx.strokeRect(0, 0, width, height);
       uiCtx.fillStyle = "white";
@@ -67,9 +73,11 @@ export class Wall extends ScreenObject implements IWall {
     }
 
     ctx.restore();
-    uiCtx.restore();
+    if (debug) {
+      uiCtx.restore();
+    }
 
-    if (this.world.debug) {
+    if (debug) {
       const screenPoint = this.world.worldToScreenCoordinates(
         this.getPosition()
       );

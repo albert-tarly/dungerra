@@ -14,6 +14,10 @@ export interface IBullet extends IScreenObject, IDrawable {
   ownerId?: string;
   weaponType: config.WeaponType;
   batchId?: string;
+  /** Moves the bullet to where it is at `renderTime` (server ms), stopping at walls. */
+  advance(renderTime: number, walls: IScreenObject[]): void;
+  /** Restarts the flight from a server-reported position (servers before 1.2 sent these). */
+  rebase(x: number, y: number, time: number): void;
 }
 
 export interface IBulletFactory {

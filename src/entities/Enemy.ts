@@ -8,8 +8,19 @@ import { Point2D } from "../utils/geometry/Point2D";
 import { AudioManager } from "../utils/AudioManager";
 import { Enemy as EnemyMessage, EnemyUpdate } from "../types/socketEvents";
 import { ImageManager } from "../utils/ImageManager";
+import { Pose, PoseBuffer } from "../utils/PoseBuffer";
+
+// Texture offsets relative to the enemy centre, computed once instead of per frame
+const SOLDIER_TEXTURE_OFFSET = config.ENEMY_SOLDIER_TEXTURE_CENTER.inverted();
+const TOWER_TEXTURE_OFFSET = config.ENEMY_TOWER_TEXTURE_CENTER.inverted();
+const BLOOD_TEXTURE_OFFSET = new Point2D(
+  -config.BLOOD_TEXTURE_SIZE / 2,
+  -config.BLOOD_TEXTURE_SIZE / 2,
+);
 
 export class Enemy extends ScreenObject implements IEnemy {
+  private _poses: PoseBuffer;
+  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
   private _enemyTowerBg: HTMLImageElement | null = null;
   private _image: HTMLImageElement | null = null;
   private deadImage: HTMLImageElement | null = null;
@@ -40,6 +51,12 @@ export class Enemy extends ScreenObject implements IEnemy {
     this._lives = enemyData.lives;
     this.dead = !enemyData.isAlive;
     this._type = enemyData.type as config.EnemyType;
+    this._poses = new PoseBuffer(
+      world.snapshotTime,
+      position.x,
+      position.y,
+      enemyData.rotation,
+    );
 
     const imageManager = ImageManager.getInstance();
     // Load enemy sprite
@@ -83,21 +100,11 @@ export class Enemy extends ScreenObject implements IEnemy {
       return;
     }
 
-    let shouldDraw = false;
-    if (currentPlayer.isAlive() && currentPlayer.hasNightVision()) {
-      shouldDraw = true;
-    } else {
-      const players = [
-        currentPlayer,
-        ...this.world.otherPlayers.filter(
-          (p) => p.isAlive() && !p.hasNightVision(),
-        ),
-      ];
-      for (const player of players) {
-        const distance = this.getPosition().distanceTo(player.getTorchPoint());
-        shouldDraw =
-          shouldDraw || distance <= this.world.torchRadius + this.width;
-      }
+    const shouldDraw =
+      (currentPlayer.isAlive() && currentPlayer.hasNightVision()) ||
+      this.world.isLitByTorch(this.getPosition(), this.width);
+    if (!shouldDraw && !this.world.debug) {
+      return;
     }
     const screenPoint = this.world.worldToScreenCoordinates(this.getPosition());
 
@@ -108,14 +115,14 @@ export class Enemy extends ScreenObject implements IEnemy {
       ? config.ENEMY_TEXTURE_SIZE
       : config.BLOOD_TEXTURE_SIZE;
     let texturePoint = !this.dead
-      ? config.ENEMY_SOLDIER_TEXTURE_CENTER.inverted()
-      : new Point2D(-textureSize / 2, -textureSize / 2);
+      ? SOLDIER_TEXTURE_OFFSET
+      : BLOOD_TEXTURE_OFFSET;
 
     const towerType = config.ENEMY_TYPES.TOWER;
 
     if (this._type === towerType) {
       textureSize = config.ENEMY_TOWER_TEXTURE_SIZE;
-      texturePoint = config.ENEMY_TOWER_TEXTURE_CENTER.inverted();
+      texturePoint = TOWER_TEXTURE_OFFSET;
     }
 
     if (this.dead && shouldDraw && this.deadImage) {
@@ -217,10 +224,21 @@ export class Enemy extends ScreenObject implements IEnemy {
     return false;
   }
 
+  update(_dt: number): void {
+    const pose = this._poses.sample(this.world.renderTime, this._pose);
+    this._point.setTo(pose.x, pose.y);
+    this._rotation = pose.rotation;
+  }
+
   applyFromGameStateDelta(enemyDelta: EnemyUpdate): void {
     if (enemyDelta.position) {
-      this._point.setTo(enemyDelta.position.x, enemyDelta.position.y);
-      this._rotation = enemyDelta.position.rotation;
+      // Shown smoothly by update(), slightly behind the server
+      this._poses.push(
+        this.world.snapshotTime,
+        enemyDelta.position.x,
+        enemyDelta.position.y,
+        enemyDelta.position.rotation,
+      );
     }
 
     if (enemyDelta.lives) {

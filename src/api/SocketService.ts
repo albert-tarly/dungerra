@@ -22,7 +22,18 @@ export class SocketService {
   private reconnectDelay: number = 1000;
   private sessionId: string | null = null;
   private messageQueue: GameMessage[] = [];
-  private binaryMode: boolean = process.env.NODE_ENV === "production";
+  // Binary everywhere, so local testing measures the real (faster) path. To
+  // read messages in DevTools, run localStorage.setItem("protocol", "json")
+  // and reload.
+  private binaryMode: boolean = SocketService.readProtocolOverride() !== "json";
+
+  private static readProtocolOverride(): string | null {
+    try {
+      return localStorage.getItem("protocol");
+    } catch {
+      return null; // Storage blocked (e.g. private mode)
+    }
+  }
 
   private constructor() {}
 

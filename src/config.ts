@@ -18,6 +18,12 @@ export const AIM_SEND_MIN_DELTA_DEG = 1; // Aim changes smaller than this are no
 export const AIM_DEAD_ZONE_PX = 8; // Cursor this close to the player gives no stable angle; keep previous aim
 export const MOUSE_SHOOT_KEY = "MouseLeft"; // Pseudo key code in the active-keys set while the left button is held
 
+// Network smoothing
+export const SERVER_TICK_MS = 1000 / 30; // Server game loop interval
+export const INTERPOLATION_DELAY_MS = 60; // Entities are drawn this far in the past, so there is usually a newer server update to blend toward
+export const TELEPORT_DISTANCE = 150; // A jump larger than this between two updates (e.g. respawn) is shown at once, not blended
+export const DRAW_CULL_MARGIN = 128; // Objects this far outside the view are still drawn (textures, labels and bars overhang the collision box)
+
 // World settings
 export const TORCH_RADIUS = 200;
 export const NIGHT_VISION_DETECTION_RADIUS = 100;
