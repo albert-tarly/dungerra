@@ -9,7 +9,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Game } from "../utils/Game";
 import { SessionManager } from "../api/SessionManager";
 import { AudioManager } from "../utils/AudioManager";
-import * as config from "../config";
 
 export const GameScreen: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -132,24 +131,9 @@ export const GameScreen: React.FC = () => {
 
   return (
     <div id="gameScreen" className="screen">
-      <canvas
-        ref={gameCanvasRef}
-        className="gameCanvas"
-        width={config.SCREEN_WIDTH}
-        height={config.SCREEN_HEIGHT}
-      ></canvas>
-      <canvas
-        ref={lightCanvasRef}
-        className="gameCanvas"
-        width={config.SCREEN_WIDTH}
-        height={config.SCREEN_HEIGHT}
-      ></canvas>
-      <canvas
-        ref={uiCanvasRef}
-        className="gameCanvas"
-        width={config.SCREEN_WIDTH}
-        height={config.SCREEN_HEIGHT}
-      ></canvas>
+      <canvas ref={gameCanvasRef} className="gameCanvas"></canvas>
+      <canvas ref={lightCanvasRef} className="gameCanvas"></canvas>
+      <canvas ref={uiCanvasRef} className="gameCanvas"></canvas>
       <div className="volume-control">
         <label
           className="volume-label"

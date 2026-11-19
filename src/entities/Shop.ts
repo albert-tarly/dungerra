@@ -8,6 +8,7 @@ import {
 import { Point2D } from "../utils/geometry/Point2D";
 import { ScreenObject } from "./ScreenObject";
 import * as config from "../config";
+import { viewport } from "../utils/Viewport";
 import { AudioManager } from "../utils/AudioManager";
 import { ImageManager } from "../utils/ImageManager";
 
@@ -168,8 +169,8 @@ export class Shop extends ScreenObject implements IShop {
       uiCtx.font = `14px ${config.FONT_NAME}`;
       uiCtx.fillText(
         "Press Enter to visit the Shop",
-        uiCtx.canvas.width / 2,
-        uiCtx.canvas.height - config.MESSAGE_PADDING_BOTTOM
+        viewport.width / 2,
+        viewport.height - config.MESSAGE_PADDING_BOTTOM
       );
       uiCtx.restore();
     } else {
@@ -181,8 +182,8 @@ export class Shop extends ScreenObject implements IShop {
       uiCtx.save();
       const modalWidth = this._layoutImage.width;
       const modalHeight = this._layoutImage.height;
-      const modalX = (uiCtx.canvas.width - modalWidth) / 2;
-      const modalY = (uiCtx.canvas.height - modalHeight) / 2;
+      const modalX = (viewport.width - modalWidth) / 2;
+      const modalY = (viewport.height - modalHeight) / 2;
       uiCtx.drawImage(
         this._layoutImage,
         modalX,
@@ -197,8 +198,8 @@ export class Shop extends ScreenObject implements IShop {
       const bgHeight = 72;
       uiCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
       uiCtx.fillRect(
-        (uiCtx.canvas.width - bgWidth) / 2 - padding,
-        uiCtx.canvas.height - 88 - padding,
+        (viewport.width - bgWidth) / 2 - padding,
+        viewport.height - 88 - padding,
         bgWidth + padding * 2,
         bgHeight + padding * 2
       );
@@ -222,14 +223,14 @@ export class Shop extends ScreenObject implements IShop {
       uiCtx.font = `14px ${config.FONT_NAME}`;
       uiCtx.fillText(
         "🟨 - available, 🟥 - not enough money, 🟩 - already owned",
-        uiCtx.canvas.width / 2,
-        uiCtx.canvas.height - 72
+        viewport.width / 2,
+        viewport.height - 72
       );
-      uiCtx.fillText(hint, uiCtx.canvas.width / 2, uiCtx.canvas.height - 50);
+      uiCtx.fillText(hint, viewport.width / 2, viewport.height - 50);
       uiCtx.fillText(
         "Press Escape to close the Shop.",
-        uiCtx.canvas.width / 2,
-        uiCtx.canvas.height - 28
+        viewport.width / 2,
+        viewport.height - 28
       );
 
       // Draw inventory items

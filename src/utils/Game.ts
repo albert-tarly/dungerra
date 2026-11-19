@@ -13,6 +13,8 @@ import { OtherPlayer } from "../entities/OtherPlayer";
 import { BulletManager } from "./BulletManager";
 import { ImageManager } from "./ImageManager";
 import { Ray } from "../entities/Ray";
+import { viewport } from "./Viewport";
+
 export class Game {
   private _ctx: CanvasRenderingContext2D;
   private _lightCtx: CanvasRenderingContext2D;
@@ -23,6 +25,7 @@ export class Game {
   private _authManager: AuthManager;
   private _sessionManager: SessionManager;
   private _started: boolean = false;
+  private _resizeObserver: ResizeObserver | null = null;
 
   public get world(): World | null {
     return this._world;
@@ -33,11 +36,6 @@ export class Game {
     private _lightCanvas: HTMLCanvasElement,
     private _uiCanvas: HTMLCanvasElement,
   ) {
-    [this._canvas, this._lightCanvas, this._uiCanvas].forEach((canvas) => {
-      canvas.width = config.SCREEN_WIDTH;
-      canvas.height = config.SCREEN_HEIGHT;
-    });
-
     this._ctx = this._canvas.getContext("2d")!;
     this._lightCtx = this._lightCanvas.getContext("2d")!;
     this._uiCtx = this._uiCanvas.getContext("2d")!;
@@ -45,7 +43,91 @@ export class Game {
     this._authManager = AuthManager.getInstance();
     this._sessionManager = SessionManager.getInstance();
 
+    this.setupResizeHandling();
     this.setupEventListeners();
+  }
+
+  // All three canvases are stacked with identical CSS boxes, so observing one
+  // is enough. The observer fires on window resize, browser zoom and (where
+  // device-pixel-content-box is supported) on moving to a screen with a
+  // different pixel ratio.
+  private setupResizeHandling(): void {
+    // Size synchronously so the first frame is already correct
+    const dpr = window.devicePixelRatio || 1;
+    const { clientWidth, clientHeight } = this._canvas;
+    this.resize(
+      clientWidth,
+      clientHeight,
+      Math.round(clientWidth * dpr),
+      Math.round(clientHeight * dpr),
+    );
+
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      const cssWidth = entry.contentRect.width;
+      const cssHeight = entry.contentRect.height;
+      // Exact device pixel size when available; avoids rounding blur
+      const devicePixelSize = entry.devicePixelContentBoxSize?.[0];
+      const ratio = window.devicePixelRatio || 1;
+      this.resize(
+        cssWidth,
+        cssHeight,
+        devicePixelSize?.inlineSize ?? Math.round(cssWidth * ratio),
+        devicePixelSize?.blockSize ?? Math.round(cssHeight * ratio),
+      );
+    });
+
+    try {
+      this._resizeObserver.observe(this._canvas, {
+        box: "device-pixel-content-box",
+      });
+    } catch {
+      // Safari does not support device-pixel-content-box
+      this._resizeObserver.observe(this._canvas);
+    }
+  }
+
+  private resize(
+    cssWidth: number,
+    cssHeight: number,
+    pixelWidth: number,
+    pixelHeight: number,
+  ): void {
+    if (
+      cssWidth <= 0 ||
+      cssHeight <= 0 ||
+      pixelWidth <= 0 ||
+      pixelHeight <= 0
+    ) {
+      return;
+    }
+
+    viewport.width = cssWidth;
+    viewport.height = cssHeight;
+
+    const contexts = [this._ctx, this._lightCtx, this._uiCtx];
+    for (const ctx of contexts) {
+      const canvas = ctx.canvas;
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        // Assigning the size clears the canvas and resets context state
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+      // Game code draws in CSS pixels; map them onto device pixels
+      ctx.setTransform(
+        pixelWidth / cssWidth,
+        0,
+        0,
+        pixelHeight / cssHeight,
+        0,
+        0,
+      );
+    }
+
+    // Resizing cleared the canvases; redraw now to avoid a blank frame
+    if (this._started) {
+      this.draw();
+    }
   }
 
   public static async loadResources(): Promise<void> {
@@ -149,14 +231,9 @@ export class Game {
   }
 
   private handleMouseMove(e: MouseEvent): void {
+    // Game coordinates are CSS pixels relative to the canvas
     const rect = this._canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      return;
-    }
-    // The canvas is CSS-scaled; convert client pixels to canvas pixels
-    const x = ((e.clientX - rect.left) * this._canvas.width) / rect.width;
-    const y = ((e.clientY - rect.top) * this._canvas.height) / rect.height;
-    this._world?.setAimScreenPoint(x, y);
+    this._world?.setAimScreenPoint(e.clientX - rect.left, e.clientY - rect.top);
   }
 
   private handleMouseDown(e: MouseEvent): void {
@@ -211,13 +288,15 @@ export class Game {
 
   public stop(): void {
     this._started = false;
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
     AudioManager.getInstance().stopAllSounds();
   }
 
   private draw(): void {
     // Clear the canvas
     [this._ctx, this._uiCtx, this._lightCtx].forEach((ctx) => {
-      ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+      ctx.clearRect(0, 0, viewport.width, viewport.height);
     });
 
     // Draw the world

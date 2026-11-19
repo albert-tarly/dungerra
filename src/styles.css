@@ -75,9 +75,10 @@ button:active {
 
 #gameScreen {
   background: #000;
-  position: relative;
-  width: min(100vw, calc(100vh * 16 / 9));
-  height: min(100vh, calc(100vw * 9 / 16));
+  /* Fill the window; canvases render 1:1 to screen pixels (see Game.resize) */
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
 .gameCanvas {

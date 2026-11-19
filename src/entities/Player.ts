@@ -1,5 +1,6 @@
 import { ScreenObject } from "./ScreenObject";
 import * as config from "../config";
+import { viewport } from "../utils/Viewport";
 import { IPlayer } from "../types/screen-objects/IPlayer";
 import { IPoint } from "../types/geometry/IPoint";
 import { IWorld } from "../types/IWorld";
@@ -287,10 +288,8 @@ export class Player extends ScreenObject implements IPlayer {
 
       ctx.drawImage(
         this._inventoryImage,
-        config.SCREEN_WIDTH / 2 - inventoryPanelWidth / 2,
-        config.SCREEN_HEIGHT -
-          inventoryPanelHeight -
-          inventoryPanelMarginBottom,
+        viewport.width / 2 - inventoryPanelWidth / 2,
+        viewport.height - inventoryPanelHeight - inventoryPanelMarginBottom,
         inventoryPanelWidth,
         inventoryPanelHeight,
       );
@@ -322,11 +321,11 @@ export class Player extends ScreenObject implements IPlayer {
 
           ctx.drawImage(
             itemTexture,
-            config.SCREEN_WIDTH / 2 -
+            viewport.width / 2 -
               inventoryPanelWidth / 2 +
               itemCenterX -
               itemTexture.width / 2,
-            config.SCREEN_HEIGHT -
+            viewport.height -
               inventoryPanelHeight -
               inventoryPanelMarginBottom +
               itemCenterY -
@@ -339,11 +338,11 @@ export class Player extends ScreenObject implements IPlayer {
             // Draw a background for better readability
             ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
             ctx.fillRect(
-              config.SCREEN_WIDTH / 2 -
+              viewport.width / 2 -
                 inventoryPanelWidth / 2 +
                 itemCenterX -
                 inventoryPanelCellSize / 2,
-              config.SCREEN_HEIGHT -
+              viewport.height -
                 inventoryPanelHeight -
                 inventoryPanelMarginBottom +
                 itemCenterY +
@@ -359,12 +358,12 @@ export class Player extends ScreenObject implements IPlayer {
             ctx.textAlign = "right";
             ctx.fillText(
               `x${item.quantity}`,
-              config.SCREEN_WIDTH / 2 -
+              viewport.width / 2 -
                 inventoryPanelWidth / 2 +
                 itemCenterX +
                 inventoryPanelCellSize / 2 -
                 4,
-              config.SCREEN_HEIGHT -
+              viewport.height -
                 inventoryPanelHeight -
                 inventoryPanelMarginBottom +
                 itemCenterY +
@@ -381,11 +380,11 @@ export class Player extends ScreenObject implements IPlayer {
             ctx.strokeStyle = "yellow";
             ctx.lineWidth = 2;
             ctx.strokeRect(
-              config.SCREEN_WIDTH / 2 -
+              viewport.width / 2 -
                 inventoryPanelWidth / 2 +
                 itemCenterX -
                 inventoryPanelCellSize / 2,
-              config.SCREEN_HEIGHT -
+              viewport.height -
                 inventoryPanelHeight -
                 inventoryPanelMarginBottom +
                 itemCenterY -
@@ -408,14 +407,14 @@ export class Player extends ScreenObject implements IPlayer {
       ctx.fillText(
         `Collision hits: ${this._debugData.collisionHits}`,
         10,
-        ctx.canvas.height - 38,
+        viewport.height - 38,
       );
       ctx.fillText(
         `Player position: ${this.getPosition()}`,
         10,
-        ctx.canvas.height - 24,
+        viewport.height - 24,
       );
-      ctx.fillText(`Rotation: ${this._rotation}`, 10, ctx.canvas.height - 10);
+      ctx.fillText(`Rotation: ${this._rotation}`, 10, viewport.height - 10);
     }
   }
 

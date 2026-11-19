@@ -1,4 +1,5 @@
 import * as config from "../config";
+import { viewport } from "./Viewport";
 import { IEnemy, IEnemyFactory } from "../types/screen-objects/IEnemy";
 import { IPlayerFactory } from "../types/screen-objects/IPlayer";
 import { IPlayer } from "../types/screen-objects/IPlayer";
@@ -206,13 +207,13 @@ export class World implements IWorld {
         (this.cameraPoint.y % resultingFloorHeight) - resultingFloorHeight;
 
       for (
-        let y = -config.SCREEN_HEIGHT / resultingFloorHeight - 1;
-        y < config.SCREEN_HEIGHT / resultingFloorHeight + 2;
+        let y = -viewport.height / resultingFloorHeight - 1;
+        y < viewport.height / resultingFloorHeight + 2;
         y++
       ) {
         for (
-          let x = -config.SCREEN_WIDTH / resultingFloorWidth - 1;
-          x < config.SCREEN_WIDTH / resultingFloorWidth + 2;
+          let x = -viewport.width / resultingFloorWidth - 1;
+          x < viewport.width / resultingFloorWidth + 2;
           x++
         ) {
           ctx.drawImage(
@@ -271,7 +272,7 @@ export class World implements IWorld {
     uiCtx: CanvasRenderingContext2D,
   ): void {
     // Clear the canvas
-    ctx.clearRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
 
     this.drawFloor(ctx);
 
@@ -319,17 +320,17 @@ export class World implements IWorld {
     const screenPoint = this.worldToScreenCoordinates(point);
     const isOnScreen =
       screenPoint.x >= 0 &&
-      screenPoint.x <= config.SCREEN_WIDTH &&
+      screenPoint.x <= viewport.width &&
       screenPoint.y >= 0 &&
-      screenPoint.y <= config.SCREEN_HEIGHT;
+      screenPoint.y <= viewport.height;
 
     if (isOnScreen && fadeWhenOnScreen) {
       return;
     }
 
     const centerScreenPoint = new Point2D(
-      config.SCREEN_WIDTH / 2,
-      config.SCREEN_HEIGHT / 2,
+      viewport.width / 2,
+      viewport.height / 2,
     );
     const direction = screenPoint.subtracted(centerScreenPoint);
     const arrowLength = 10;
@@ -346,16 +347,10 @@ export class World implements IWorld {
     const arrowEndPoint = new Point2D(
       centerScreenPoint.x +
         normalizedDirection.x *
-          Math.min(
-            distance - bonusRadius,
-            config.SCREEN_WIDTH / 2 - arrowLength,
-          ),
+          Math.min(distance - bonusRadius, viewport.width / 2 - arrowLength),
       centerScreenPoint.y +
         normalizedDirection.y *
-          Math.min(
-            distance - bonusRadius,
-            config.SCREEN_HEIGHT / 2 - arrowLength,
-          ),
+          Math.min(distance - bonusRadius, viewport.height / 2 - arrowLength),
     );
 
     // Add a light bouncing animation to the arrow
@@ -431,23 +426,19 @@ export class World implements IWorld {
       ctx.fillStyle = "white";
       ctx.font = `48px ${config.HEADER_FONT_NAME}`;
       ctx.textAlign = "center";
-      ctx.fillText(
-        "Game Over",
-        config.SCREEN_WIDTH / 2,
-        config.SCREEN_HEIGHT / 2,
-      );
+      ctx.fillText("Game Over", viewport.width / 2, viewport.height / 2);
       ctx.font = `24px ${config.FONT_NAME}`;
       ctx.fillStyle = "yellow";
       ctx.fillText(
         `Your Posthumous Score: ${this._player.score.toFixed(0)}`,
-        config.SCREEN_WIDTH / 2,
-        config.SCREEN_HEIGHT / 2 + 40,
+        viewport.width / 2,
+        viewport.height / 2 + 40,
       );
       ctx.fillStyle = "magenta";
       ctx.fillText(
         "Press R to Restart",
-        config.SCREEN_WIDTH / 2,
-        config.SCREEN_HEIGHT / 2 + 80,
+        viewport.width / 2,
+        viewport.height / 2 + 80,
       );
     } else {
       ctx.fillStyle = "white";
@@ -501,37 +492,37 @@ export class World implements IWorld {
       ctx.fillText(
         `Chunk: ${this.getChunkLeftTop(this.cameraPoint)}`,
         10,
-        config.SCREEN_HEIGHT - 52,
+        viewport.height - 52,
       );
       ctx.fillText(
         `Number of world objects: ${worldObjectsCount}`,
         10,
-        config.SCREEN_HEIGHT - 66,
+        viewport.height - 66,
       );
       ctx.fillText(
         `Camera position: ${this.cameraPoint}`,
         10,
-        config.SCREEN_HEIGHT - 80,
+        viewport.height - 80,
       );
       ctx.fillText(
         `Number of chunks: ${this.chunks.size}`,
         10,
-        config.SCREEN_HEIGHT - 94,
+        viewport.height - 94,
       );
       ctx.fillText(
         `Host: ${this._sessionManager.getCurrentSession()?.host.username}`,
         10,
-        config.SCREEN_HEIGHT - 108,
+        viewport.height - 108,
       );
       ctx.fillText(
         `Session ID: ${this._sessionManager.getCurrentSession()?.id}`,
         10,
-        config.SCREEN_HEIGHT - 122,
+        viewport.height - 122,
       );
       ctx.fillText(
         `Session: ${this._sessionManager.getCurrentSession()?.name}`,
         10,
-        config.SCREEN_HEIGHT - 136,
+        viewport.height - 136,
       );
     }
   }
@@ -539,7 +530,7 @@ export class World implements IWorld {
   private drawDarknessOverlay(ctx: CanvasRenderingContext2D): void {
     if (!this._player || !this._player.isAlive()) {
       ctx.fillStyle = config.COLOR_DARK;
-      ctx.fillRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
+      ctx.fillRect(0, 0, viewport.width, viewport.height);
       return;
     }
 
@@ -547,7 +538,7 @@ export class World implements IWorld {
       ctx.fillStyle = this._player.isNightVisionFading()
         ? config.COLOR_NIGHT_VISION_FADING
         : config.COLOR_NIGHT_VISION;
-      ctx.fillRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
+      ctx.fillRect(0, 0, viewport.width, viewport.height);
       return;
     }
 
@@ -560,7 +551,7 @@ export class World implements IWorld {
       this._torchRadius * 0.97 + Math.random() * this._torchRadius * 0.06;
 
     ctx.fillStyle = config.COLOR_DARK;
-    ctx.fillRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
     ctx.globalCompositeOperation = "destination-out";
 
     players.forEach((player) => {
@@ -578,16 +569,16 @@ export class World implements IWorld {
       gradient.addColorStop(1, config.COLOR_TRANSPARENT);
 
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
-      ctx.fillRect(0, 0, config.SCREEN_WIDTH, config.SCREEN_HEIGHT);
+      ctx.fillRect(0, 0, viewport.width, viewport.height);
+      ctx.fillRect(0, 0, viewport.width, viewport.height);
     });
     ctx.globalCompositeOperation = "source-over";
   }
 
   public worldToScreenCoordinates(point: IPoint): IPoint {
     return point.movedBy(
-      config.SCREEN_WIDTH / 2 - this._cameraPoint.x,
-      config.SCREEN_HEIGHT / 2 - this._cameraPoint.y,
+      viewport.width / 2 - this._cameraPoint.x,
+      viewport.height / 2 - this._cameraPoint.y,
     );
   }
 
@@ -603,8 +594,8 @@ export class World implements IWorld {
     if (!this._aimScreenPoint) {
       return this._aimRotation;
     }
-    const dx = this._aimScreenPoint.x - config.SCREEN_WIDTH / 2;
-    const dy = this._aimScreenPoint.y - config.SCREEN_HEIGHT / 2;
+    const dx = this._aimScreenPoint.x - viewport.width / 2;
+    const dy = this._aimScreenPoint.y - viewport.height / 2;
     if (Math.hypot(dx, dy) < config.AIM_DEAD_ZONE_PX) {
       return this._aimRotation;
     }

@@ -8,9 +8,7 @@ export const API_DOMAIN =
     : "http://localhost:8080";
 export const API_BASE_URL = `${API_DOMAIN}/api/v1`;
 
-// Display
-export const SCREEN_WIDTH = 1280;
-export const SCREEN_HEIGHT = 720;
+// Display (the view size is dynamic, see utils/Viewport.ts)
 export const FONT_NAME = "Texturina";
 export const HEADER_FONT_NAME = "Rubik Distressed";
 
