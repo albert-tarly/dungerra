@@ -1,1 +1,1 @@
-export * from "dungeon-game-go";
+export * from "dungerra-api";

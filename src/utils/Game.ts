@@ -99,6 +99,16 @@ export class Game {
 
     window.addEventListener("mousemove", (e) => this.handleMouseMove(e));
     window.addEventListener("mousedown", (e) => this.handleMouseDown(e));
+    // Listen on window so releasing outside the canvas still stops firing
+    window.addEventListener("mouseup", (e) => {
+      if (e.button === 0) {
+        this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
+      }
+    });
+    // A button held while the window loses focus never gets its mouseup
+    window.addEventListener("blur", () => {
+      this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
+    });
 
     this._sessionManager.onGameStateDelta((changeset) => {
       if (this._world) {
@@ -140,19 +150,24 @@ export class Game {
 
   private handleMouseMove(e: MouseEvent): void {
     const rect = this._canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    // Mouse position handling will be used for player rotation
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
+    // The canvas is CSS-scaled; convert client pixels to canvas pixels
+    const x = ((e.clientX - rect.left) * this._canvas.width) / rect.width;
+    const y = ((e.clientY - rect.top) * this._canvas.height) / rect.height;
+    this._world?.setAimScreenPoint(x, y);
   }
 
   private handleMouseDown(e: MouseEvent): void {
-    if (e.button === 0) {
-      // Left click
-      const rect = this._canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      // Shooting will be handled here
+    // Only clicks on the game itself shoot, not on overlays like the volume control
+    if (e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) {
+      return;
     }
+    // Aim at the click point even if the mouse has not moved yet
+    this.handleMouseMove(e);
+    // Held like a key: fires as fast as the weapon allows until released
+    this._activeKeys.add(config.MOUSE_SHOOT_KEY);
   }
 
   public async start(session: Session): Promise<void> {

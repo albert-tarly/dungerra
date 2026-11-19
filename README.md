@@ -30,7 +30,7 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 
 - **React Router**: Handles client-side routing between screens
 - **Components**:
-  - `LoginScreen`: Google authentication
+  - `LoginScreen`: sign-in; shows the providers the server enables (`GET /auth/providers`): Google, and/or local username + password accounts (sign in / create account)
   - `LeaderboardScreen`: Sessions list and leaderboard
   - `GameScreen`: Main game canvas wrapper
   - `LegendScreen`: Game instructions and tutorial
@@ -48,8 +48,10 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 
 ## Controls
 
-- Arrow keys / A W S D: Aim
-- Space: Shoot
+- W / S or Up / Down: Move forward / backward along the way you face
+- A / D or Left / Right: Strafe sideways
+- Mouse: Aim (you turn to face the cursor)
+- Left mouse button / Space: Shoot (hold to keep firing)
 - 1..8: Use inventory item
 - ~ or E: Toggle inventory
 - Enter / Escape: Enter/exit shop

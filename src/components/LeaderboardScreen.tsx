@@ -106,7 +106,7 @@ export const LeaderboardScreen: React.FC = () => {
           setError("Failed to load user data. Please try logging in again.");
           return;
         }
-        setUsername(userData.username);
+        setUsername(userData.display_name || userData.username);
 
         const [leaderboardData, sessionsData] = await Promise.all([
           leaderboardManager.getLeaderboard(),

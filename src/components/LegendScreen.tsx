@@ -43,7 +43,8 @@ export const LegendScreen: React.FC = () => {
         </p>
 
         <p>
-          This is you, the lone survivor. Use arrow keys or A W S D to move.
+          This is you, the lone survivor. Use arrow keys or A W S D to move,
+          and the mouse to aim.
         </p>
         <p className="light">
           <img
@@ -56,7 +57,7 @@ export const LegendScreen: React.FC = () => {
 
         <p>
           You are equipped with basic blaster to start your journey. Use
-          spacebar to shoot.
+          the left mouse button or spacebar to shoot.
         </p>
         <div className="bullets bullets1">
           <div className="bullet bullet-player"></div>

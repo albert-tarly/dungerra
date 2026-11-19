@@ -15,7 +15,7 @@ module.exports = {
             allowTsInNodeModules: true,
           },
         },
-        exclude: /node_modules\/(?!dungeon-game-go)/,
+        exclude: /node_modules\/(?!dungerra-api)/,
       },
       {
         test: /\.css$/i,

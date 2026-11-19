@@ -4,7 +4,7 @@ import { Point2D } from "./utils/geometry/Point2D";
 
 export const API_DOMAIN =
   process.env.NODE_ENV === "production"
-    ? "https://dungeon-game-go.onrender.com"
+    ? "https://dungerra.onrender.com"
     : "http://localhost:8080";
 export const API_BASE_URL = `${API_DOMAIN}/api/v1`;
 
@@ -13,6 +13,12 @@ export const SCREEN_WIDTH = 1280;
 export const SCREEN_HEIGHT = 720;
 export const FONT_NAME = "Texturina";
 export const HEADER_FONT_NAME = "Rubik Distressed";
+
+// Mouse aim
+export const AIM_SEND_INTERVAL_MS = 33; // Min time between aim-only input messages (~30/s)
+export const AIM_SEND_MIN_DELTA_DEG = 1; // Aim changes smaller than this are not sent
+export const AIM_DEAD_ZONE_PX = 8; // Cursor this close to the player gives no stable angle; keep previous aim
+export const MOUSE_SHOOT_KEY = "MouseLeft"; // Pseudo key code in the active-keys set while the left button is held
 
 // World settings
 export const TORCH_RADIUS = 200;

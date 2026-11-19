@@ -25,6 +25,7 @@ import {
 import { IShop, IShopFactory } from "../types/screen-objects/IShop";
 import { ImageManager } from "./ImageManager";
 import { IRay, IRayFactory } from "../types/screen-objects/IRay";
+import { angleDifference } from "./angleDifference";
 
 export class World implements IWorld {
   private readonly CHUNK_SIZE = 2000; // Same as screen width for now
@@ -62,6 +63,10 @@ export class World implements IWorld {
     purchaseItemKey: {},
   };
   private _inputStateSubmitTimestamp: number = 0;
+  // Cursor position in canvas pixels; null until the mouse first moves
+  private _aimScreenPoint: { x: number; y: number } | null = null;
+  // Last aim angle in degrees, kept when the cursor enters the dead zone
+  private _aimRotation: number | undefined = undefined;
 
   get debug(): boolean {
     return this._debug;
@@ -586,6 +591,27 @@ export class World implements IWorld {
     );
   }
 
+  setAimScreenPoint(x: number, y: number): void {
+    this._aimScreenPoint = { x, y };
+  }
+
+  // Desired facing in degrees from the player toward the cursor, using the
+  // server convention (0 = +Y, atan2(-dx, dy)). The camera keeps the player at
+  // the screen centre and the world is never rotated, so screen offsets equal
+  // world offsets.
+  private computeAimRotation(): number | undefined {
+    if (!this._aimScreenPoint) {
+      return this._aimRotation;
+    }
+    const dx = this._aimScreenPoint.x - config.SCREEN_WIDTH / 2;
+    const dy = this._aimScreenPoint.y - config.SCREEN_HEIGHT / 2;
+    if (Math.hypot(dx, dy) < config.AIM_DEAD_ZONE_PX) {
+      return this._aimRotation;
+    }
+    const degrees = (Math.atan2(-dx, dy) * 180) / Math.PI;
+    return (degrees + 360) % 360;
+  }
+
   handleInput(keys: Set<string>, dt: number): void {
     if (!this._player) {
       return;
@@ -595,7 +621,7 @@ export class World implements IWorld {
     const backward = keys.has("KeyS") || keys.has("ArrowDown");
     const left = keys.has("KeyA") || keys.has("ArrowLeft");
     const right = keys.has("KeyD") || keys.has("ArrowRight");
-    const shoot = keys.has("Space");
+    const shoot = keys.has("Space") || keys.has(config.MOUSE_SHOOT_KEY);
     const now = Date.now();
 
     const itemKey: { [key: number]: boolean } = {};
@@ -630,7 +656,10 @@ export class World implements IWorld {
       }
     }
 
-    if (
+    const aimRotation = this.computeAimRotation();
+    this._aimRotation = aimRotation;
+
+    const keysChanged =
       forward !== this._previousInputState.forward ||
       backward !== this._previousInputState.backward ||
       left !== this._previousInputState.left ||
@@ -639,10 +668,21 @@ export class World implements IWorld {
       JSON.stringify(itemKey) !==
         JSON.stringify(this._previousInputState.itemKey) ||
       JSON.stringify(purchaseItemKey) !==
-        JSON.stringify(this._previousInputState.purchaseItemKey) ||
-      now - this._inputStateSubmitTimestamp > 1000
-    ) {
-      this._sessionManager.notifyInput({
+        JSON.stringify(this._previousInputState.purchaseItemKey);
+
+    // The mouse moves constantly, so aim-only updates are throttled
+    const previousAim = this._previousInputState.aimRotation;
+    const aimChanged =
+      aimRotation !== undefined &&
+      (previousAim === undefined ||
+        angleDifference(aimRotation, previousAim) >=
+          config.AIM_SEND_MIN_DELTA_DEG);
+    const aimDue =
+      aimChanged &&
+      now - this._inputStateSubmitTimestamp >= config.AIM_SEND_INTERVAL_MS;
+
+    if (keysChanged || aimDue || now - this._inputStateSubmitTimestamp > 1000) {
+      const input: InputMessage = {
         forward,
         backward,
         left,
@@ -650,16 +690,10 @@ export class World implements IWorld {
         shoot,
         itemKey,
         purchaseItemKey,
-      });
-      this._previousInputState = {
-        forward,
-        backward,
-        left,
-        right,
-        shoot,
-        itemKey,
-        purchaseItemKey,
+        aimRotation,
       };
+      this._sessionManager.notifyInput(input);
+      this._previousInputState = input;
       this._inputStateSubmitTimestamp = now;
     }
   }
