@@ -12,6 +12,7 @@ interface IAuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   checkAuth: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<IAuthContextType | undefined>(undefined);
@@ -35,6 +36,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [authManager]);
 
+  const logout = useCallback((): void => {
+    authManager.logout();
+    setIsAuthenticated(false);
+  }, [authManager]);
+
   useEffect(() => {
     // Initial auth check on mount. State is set after the request settles, so
     // this does not cascade renders; the rule cannot see past the await.
@@ -43,7 +49,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, [checkAuth]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, checkAuth }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isLoading, checkAuth, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -537,6 +537,46 @@ button:active {
   background-color: #777;
 }
 
+/* A button that reads as an inline text link (e.g. "Log out" next to the greeting). */
+button.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  color: #aaa;
+  text-decoration: underline;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* Icon plus label; the underline is dropped so it doesn't run under the icon. */
+button.logout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  text-decoration: none;
+  margin-left: 0.25em;
+}
+
+.button.logout-button span {
+  margin-top: -4px;
+}
+
+button.logout-button:hover {
+  text-decoration: underline;
+}
+
+button.link-button:hover,
+button.link-button:active {
+  background: none;
+  color: #fff;
+  transform: none;
+  box-shadow: none;
+}
+
 #legend {
   color: #ccc;
 }

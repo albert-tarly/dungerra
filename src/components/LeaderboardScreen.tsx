@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { AuthManager } from "../api/AuthManager";
 import { LeaderboardManager } from "../api/LeaderboardManager";
 import { SessionManager } from "../api/SessionManager";
+import { useAuth } from "../contexts/AuthContext";
 import { ILeaderboardEntry } from "../types/leaderboard";
 import { ISession } from "../types/session";
 
@@ -85,6 +86,7 @@ export const LeaderboardScreen: React.FC = () => {
   const authManager = AuthManager.getInstance();
   const leaderboardManager = LeaderboardManager.getInstance();
   const sessionManager = SessionManager.getInstance();
+  const { logout } = useAuth();
 
   const activeTab =
     location.pathname === "/leaderboard" ? "leaderboard" : "sessions";
@@ -179,6 +181,11 @@ export const LeaderboardScreen: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    void navigate("/", { replace: true });
+  };
+
   const currentUserId = authManager.getUserData()?.id;
 
   return (
@@ -188,7 +195,28 @@ export const LeaderboardScreen: React.FC = () => {
         <h1>Dungerra</h1>
         <div style={{ textAlign: "center" }}>
           <p style={{ marginBottom: "1em" }}>
-            Welcome, <span id="username">{username}</span>!
+            Welcome, <span id="username">{username}</span>!{" "}
+            <button
+              className="link-button logout-button"
+              onClick={handleLogout}
+            >
+              <span>Log out</span>
+              <svg
+                viewBox="0 0 24 24"
+                width="1em"
+                height="1em"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </button>
           </p>
           <p>
             <Link

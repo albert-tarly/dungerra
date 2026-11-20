@@ -134,6 +134,17 @@ export class AuthManager {
     }
   }
 
+  /**
+   * Forgets the token locally. The server has no revocation endpoint, so a
+   * copied token stays valid until it expires on its own.
+   */
+  logout(): void {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    this._token = null;
+    this.userData = null;
+    this.authUrl = null;
+  }
+
   getToken(): string | null {
     return this._token;
   }
