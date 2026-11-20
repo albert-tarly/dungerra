@@ -29,6 +29,7 @@ import { IRay, IRayFactory } from "../types/screen-objects/IRay";
 import { angleDifference } from "./angleDifference";
 import { EntityCollection } from "./EntityCollection";
 import { serverClock } from "./ServerClock";
+import { formatDifficulty, formatScoreMultiplier } from "./difficulty";
 import { IScreenObject } from "../types/screen-objects/IScreenObject";
 
 // Compares two pressed-key maps without serialising them every frame
@@ -639,6 +640,14 @@ export class World implements IWorld {
         10,
         viewport.height - 136,
       );
+      const difficulty = this._sessionManager.getCurrentSession()?.difficulty;
+      if (difficulty) {
+        ctx.fillText(
+          `Difficulty: ${formatDifficulty(difficulty)}, score ${formatScoreMultiplier(difficulty.score_multiplier)}`,
+          10,
+          viewport.height - 150,
+        );
+      }
     }
   }
 

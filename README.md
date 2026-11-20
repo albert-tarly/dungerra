@@ -31,7 +31,7 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 - **React Router**: Handles client-side routing between screens
 - **Components**:
   - `LoginScreen`: sign-in; shows the providers the server enables (`GET /auth/providers`): Google, and/or local username + password accounts (sign in / create account)
-  - `LeaderboardScreen`: the lobby, with a Sessions tab and a Leaderboard tab
+  - `LeaderboardScreen`: the lobby, with a Sessions tab and a Leaderboard tab. Creating a game requires choosing a difficulty (`DifficultyPicker`): Peaceful, Easy, Hard, Nightmare or Custom (sliders for each setting, with an Advanced section). The server stores the resolved settings per session; the client mirrors the presets in `config.ts` only for display.
   - `GameScreen`: Main game canvas wrapper
   - `LegendScreen`: Game instructions and tutorial
 - **Game Engine**:

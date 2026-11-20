@@ -5,7 +5,15 @@ import { LeaderboardManager } from "../api/LeaderboardManager";
 import { SessionManager } from "../api/SessionManager";
 import { useAuth } from "../contexts/AuthContext";
 import { ILeaderboardEntry } from "../types/leaderboard";
-import { ISession } from "../types/session";
+import * as config from "../config";
+import { DifficultyPreset } from "../config";
+import {
+  IDifficultyRequest,
+  IDifficultySettings,
+  ISession,
+} from "../types/session";
+import { formatDifficulty } from "../utils/difficulty";
+import { DifficultyPicker } from "./DifficultyPicker";
 
 function generateFunnySessionName(): string {
   const adjectives = [
@@ -97,6 +105,14 @@ export const LeaderboardScreen: React.FC = () => {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  // No default: the host must choose a difficulty before creating a game.
+  const [difficultyPreset, setDifficultyPreset] =
+    useState<DifficultyPreset | null>(null);
+  const [customDifficulty, setCustomDifficulty] = useState<IDifficultySettings>(
+    config.DIFFICULTY_PRESET_SETTINGS[config.DIFFICULTY_PRESETS.HARD],
+  );
+  const canCreateSession =
+    sessionName.trim() !== "" && difficultyPreset !== null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -161,19 +177,31 @@ export const LeaderboardScreen: React.FC = () => {
 
   const handleStartGame = () => {
     setSessionName(generateFunnySessionName());
+    setDifficultyPreset(null);
+    setCustomDifficulty(
+      config.DIFFICULTY_PRESET_SETTINGS[config.DIFFICULTY_PRESETS.HARD],
+    );
     setShowModal(true);
   };
 
   const handleCreateSession = async () => {
     const trimmedName = sessionName.trim();
-    if (!trimmedName) {
+    if (!trimmedName || difficultyPreset === null) {
       return;
     }
+
+    const difficulty: IDifficultyRequest =
+      difficultyPreset === config.DIFFICULTY_PRESETS.CUSTOM
+        ? { preset: difficultyPreset, ...customDifficulty }
+        : { preset: difficultyPreset };
 
     setShowModal(false);
 
     try {
-      const session = await sessionManager.startSession(trimmedName);
+      const session = await sessionManager.startSession(
+        trimmedName,
+        difficulty,
+      );
       void navigate(`/${session.id}`);
     } catch (err) {
       console.error("Failed to create session:", err);
@@ -269,6 +297,11 @@ export const LeaderboardScreen: React.FC = () => {
                           &quot;{session.name}&quot;
                           <span className="session-host">
                             {isHost ? "You" : session.host.username}
+                            <span
+                              className={`session-difficulty difficulty-${session.difficulty.preset}`}
+                            >
+                              {formatDifficulty(session.difficulty)}
+                            </span>
                           </span>
                         </span>
                         <span className="session-players">
@@ -330,7 +363,7 @@ export const LeaderboardScreen: React.FC = () => {
 
       {showModal && (
         <div className="modal show">
-          <div className="modal-content">
+          <div className="modal-content modal-content-wide">
             <h2>Create New Game</h2>
             <input
               type="text"
@@ -345,6 +378,12 @@ export const LeaderboardScreen: React.FC = () => {
               maxLength={50}
               autoFocus
             />
+            <DifficultyPicker
+              preset={difficultyPreset}
+              custom={customDifficulty}
+              onPresetChange={setDifficultyPreset}
+              onCustomChange={setCustomDifficulty}
+            />
             <div className="modal-buttons">
               <button
                 className="button-secondary"
@@ -352,7 +391,15 @@ export const LeaderboardScreen: React.FC = () => {
               >
                 Cancel
               </button>
-              <button onClick={handleCreateSession}>Create</button>
+              <button
+                onClick={handleCreateSession}
+                disabled={!canCreateSession}
+                title={
+                  difficultyPreset === null ? "Choose a difficulty first" : ""
+                }
+              >
+                Create
+              </button>
             </div>
           </div>
         </div>

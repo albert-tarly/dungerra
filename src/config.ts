@@ -1,5 +1,6 @@
 import { Assets } from "./assets";
 import { BonusType } from "./types/screen-objects/IBonus";
+import { IDifficultySettings } from "./types/session";
 import { Point2D } from "./utils/geometry/Point2D";
 
 export const API_DOMAIN =
@@ -327,3 +328,196 @@ export const RAY_TYPES = {
 } as const;
 
 export type RayType = (typeof RAY_TYPES)[keyof typeof RAY_TYPES];
+
+// Difficulty. The server owns these values and stores them per session; the
+// client mirrors them (../dungerra-api/internal/config/difficulty.go) only to
+// describe presets and preview a custom difficulty's score multiplier.
+export const DIFFICULTY_PRESETS = {
+  PEACEFUL: "peaceful",
+  EASY: "easy",
+  HARD: "hard",
+  NIGHTMARE: "nightmare",
+  CUSTOM: "custom",
+} as const;
+
+export type DifficultyPreset =
+  (typeof DIFFICULTY_PRESETS)[keyof typeof DIFFICULTY_PRESETS];
+
+export type NamedDifficultyPreset = Exclude<
+  DifficultyPreset,
+  typeof DIFFICULTY_PRESETS.CUSTOM
+>;
+
+export const DIFFICULTY_LABELS: Record<DifficultyPreset, string> = {
+  [DIFFICULTY_PRESETS.PEACEFUL]: "Peaceful",
+  [DIFFICULTY_PRESETS.EASY]: "Easy",
+  [DIFFICULTY_PRESETS.HARD]: "Hard",
+  [DIFFICULTY_PRESETS.NIGHTMARE]: "Nightmare",
+  [DIFFICULTY_PRESETS.CUSTOM]: "Custom",
+};
+
+export const DIFFICULTY_DESCRIPTIONS: Record<DifficultyPreset, string> = {
+  [DIFFICULTY_PRESETS.PEACEFUL]:
+    "No enemies. Loot chests by a quarter of the walls. Double money.",
+  [DIFFICULTY_PRESETS.EASY]:
+    "Half the guards, no snipers or towers. Slower fire, 8 lives. Double money and drops.",
+  [DIFFICULTY_PRESETS.HARD]: "The full dungeon, as it was meant to be.",
+  [DIFFICULTY_PRESETS.NIGHTMARE]:
+    "1.5× guards, snipers and towers. 1.5× money.",
+  [DIFFICULTY_PRESETS.CUSTOM]: "Tune every setting yourself.",
+};
+
+export const DIFFICULTY_PRESET_SETTINGS: Record<
+  NamedDifficultyPreset,
+  IDifficultySettings
+> = {
+  [DIFFICULTY_PRESETS.PEACEFUL]: {
+    soldiers_pct: 0,
+    lieutenants_pct: 0,
+    snipers_pct: 0,
+    towers_pct: 0,
+    money_pct: 200,
+    drop_chance_pct: 100,
+    wall_chest_pct: 25,
+    enemy_fire_rate_pct: 100,
+    player_lives: 6,
+  },
+  [DIFFICULTY_PRESETS.EASY]: {
+    soldiers_pct: 50,
+    lieutenants_pct: 50,
+    snipers_pct: 0,
+    towers_pct: 0,
+    money_pct: 200,
+    drop_chance_pct: 200,
+    wall_chest_pct: 0,
+    enemy_fire_rate_pct: 75,
+    player_lives: 8,
+  },
+  [DIFFICULTY_PRESETS.HARD]: {
+    soldiers_pct: 100,
+    lieutenants_pct: 100,
+    snipers_pct: 100,
+    towers_pct: 100,
+    money_pct: 100,
+    drop_chance_pct: 100,
+    wall_chest_pct: 0,
+    enemy_fire_rate_pct: 100,
+    player_lives: 6,
+  },
+  [DIFFICULTY_PRESETS.NIGHTMARE]: {
+    soldiers_pct: 150,
+    lieutenants_pct: 150,
+    snipers_pct: 150,
+    towers_pct: 150,
+    money_pct: 150,
+    drop_chance_pct: 100,
+    wall_chest_pct: 0,
+    enemy_fire_rate_pct: 100,
+    player_lives: 6,
+  },
+};
+
+export interface IDifficultyField {
+  key: keyof IDifficultySettings;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  isPercent: boolean;
+  isAdvanced: boolean; // Shown under "Advanced" in the custom section
+}
+
+// Ranges match the server's validation, which rejects values outside them.
+export const DIFFICULTY_FIELDS: readonly IDifficultyField[] = [
+  {
+    key: "soldiers_pct",
+    label: "Soldiers",
+    min: 0,
+    max: 200,
+    step: 10,
+    isPercent: true,
+    isAdvanced: false,
+  },
+  {
+    key: "lieutenants_pct",
+    label: "Lieutenants",
+    min: 0,
+    max: 200,
+    step: 10,
+    isPercent: true,
+    isAdvanced: false,
+  },
+  {
+    key: "snipers_pct",
+    label: "Snipers",
+    min: 0,
+    max: 200,
+    step: 10,
+    isPercent: true,
+    isAdvanced: false,
+  },
+  {
+    key: "towers_pct",
+    label: "Towers",
+    min: 0,
+    max: 200,
+    step: 10,
+    isPercent: true,
+    isAdvanced: false,
+  },
+  {
+    key: "money_pct",
+    label: "Money per kill",
+    min: 0,
+    max: 300,
+    step: 25,
+    isPercent: true,
+    isAdvanced: true,
+  },
+  {
+    key: "drop_chance_pct",
+    label: "Drop chance",
+    min: 0,
+    max: 300,
+    step: 25,
+    isPercent: true,
+    isAdvanced: true,
+  },
+  {
+    key: "wall_chest_pct",
+    label: "Walls with chests",
+    min: 0,
+    max: 100,
+    step: 5,
+    isPercent: true,
+    isAdvanced: true,
+  },
+  {
+    key: "enemy_fire_rate_pct",
+    label: "Enemy fire rate",
+    min: 25,
+    max: 200,
+    step: 5,
+    isPercent: true,
+    isAdvanced: true,
+  },
+  {
+    key: "player_lives",
+    label: "Lives",
+    min: 1,
+    max: 12,
+    step: 1,
+    isPercent: false,
+    isAdvanced: true,
+  },
+];
+
+// Score multiplier formula (mirrors config.ComputeScoreMultiplier on the server)
+export const SCORE_WEIGHT_SOLDIERS = 0.4;
+export const SCORE_WEIGHT_LIEUTENANTS = 0.25;
+export const SCORE_WEIGHT_SNIPERS = 0.15;
+export const SCORE_WEIGHT_TOWERS = 0.2;
+export const SCORE_MULTIPLIER_MIN = 0.25;
+export const SCORE_MULTIPLIER_MAX = 2;
+export const SCORE_MULTIPLIER_STEPS = 20; // Rounded to 1/20 = 0.05
+export const SCORE_NEUTRAL_PLAYER_LIVES = 6; // Hard's lives, where the lives factor is 1

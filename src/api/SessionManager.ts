@@ -1,4 +1,8 @@
-import { ISession, ICreateSessionRequest } from "../types/session";
+import {
+  ISession,
+  ICreateSessionRequest,
+  IDifficultyRequest,
+} from "../types/session";
 import { HttpClient } from "./HttpClient";
 import { SocketService } from "./SocketService";
 import {
@@ -30,8 +34,11 @@ export class SessionManager {
     return await HttpClient.get<ISession[]>("/sessions");
   }
 
-  public async startSession(sessionName: string): Promise<ISession> {
-    const request: ICreateSessionRequest = { name: sessionName };
+  public async startSession(
+    sessionName: string,
+    difficulty: IDifficultyRequest,
+  ): Promise<ISession> {
+    const request: ICreateSessionRequest = { name: sessionName, difficulty };
     const session = await HttpClient.post<ISession>("/sessions", request);
 
     this.currentSession = session;
