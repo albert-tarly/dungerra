@@ -869,9 +869,10 @@ export class World implements IWorld {
         continue;
       }
 
-      if (!this._otherPlayers[addedPlayer.id]) {
-        this.addOtherPlayer(addedPlayer);
-      }
+      // The server only adds a player its view says this client doesn't
+      // know, so the full state replaces any stale copy (e.g. from a join
+      // message, or one created before goggles or a respawn).
+      this.addOtherPlayer(addedPlayer);
     }
 
     for (const [updatedPlayerId, updatedPlayer] of Object.entries(

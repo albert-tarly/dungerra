@@ -173,171 +173,205 @@ export class Shop extends ScreenObject implements IShop {
         viewport.height - config.MESSAGE_PADDING_BOTTOM,
       );
       uiCtx.restore();
-    } else {
-      // Draw shop modal
-      if (!this._layoutImage) {
-        return;
+    } else if (this._layoutImage) {
+      this.drawModal(uiCtx, this._layoutImage);
+    }
+  }
+
+  // The window and its legend form one block, drawn in unscaled block
+  // coordinates and scaled down (never up) to fit the free space: below a
+  // padding at the top and above the inventory panel when it is shown.
+  private drawModal(
+    uiCtx: CanvasRenderingContext2D,
+    layoutImage: HTMLImageElement,
+  ): void {
+    const modalWidth = layoutImage.width;
+    const modalHeight = layoutImage.height;
+    const legendTop = modalHeight + config.SHOP_MODAL_LEGEND_GAP;
+    const legendHeight =
+      config.SHOP_MODAL_LEGEND_LINE_HEIGHT * 3 +
+      config.SHOP_MODAL_LEGEND_PADDING * 2;
+    const blockWidth = Math.max(modalWidth, config.SHOP_MODAL_LEGEND_WIDTH);
+    const blockHeight = legendTop + legendHeight;
+
+    const padding = config.SHOP_MODAL_SCREEN_PADDING;
+    const freeBottom = this.world.player?.inventoryPanelTop ?? viewport.height;
+    const freeWidth = viewport.width - padding * 2;
+    const freeHeight = freeBottom - padding * 2;
+    if (freeWidth <= 0 || freeHeight <= 0) {
+      return;
+    }
+    const scale = Math.min(1, freeWidth / blockWidth, freeHeight / blockHeight);
+
+    uiCtx.save();
+    // Centred in the free space
+    uiCtx.translate(
+      (viewport.width - blockWidth * scale) / 2,
+      padding + (freeHeight - blockHeight * scale) / 2,
+    );
+    uiCtx.scale(scale, scale);
+
+    const modalX = (blockWidth - modalWidth) / 2;
+    const modalY = 0;
+    uiCtx.drawImage(layoutImage, modalX, modalY, modalWidth, modalHeight);
+
+    // Draw instructions background
+    uiCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    uiCtx.fillRect(
+      (blockWidth - config.SHOP_MODAL_LEGEND_WIDTH) / 2,
+      legendTop,
+      config.SHOP_MODAL_LEGEND_WIDTH,
+      legendHeight,
+    );
+
+    const purchaseKeyCount = Object.values(this._inventory).filter(
+      (item) => item.quantity > 0,
+    ).length;
+
+    const hint =
+      purchaseKeyCount > 9
+        ? `Press buttons from 1 through 9 and 0 to make a purchase.`
+        : purchaseKeyCount === 0
+          ? "No items available for purchase."
+          : purchaseKeyCount === 1
+            ? "Press button 1 to make a purchase."
+            : `Press button from 1 through ${purchaseKeyCount} to make a purchase.`;
+
+    // Draw instructions text, one per legend row (baselines a little above
+    // each row's bottom)
+    const legendCenterX = blockWidth / 2;
+    const firstBaseline =
+      legendTop +
+      config.SHOP_MODAL_LEGEND_PADDING +
+      config.SHOP_MODAL_LEGEND_LINE_HEIGHT -
+      6;
+    uiCtx.fillStyle = "white";
+    uiCtx.textAlign = "center";
+    uiCtx.font = `14px ${config.FONT_NAME}`;
+    uiCtx.fillText(
+      "🟨 - available, 🟥 - not enough money, 🟩 - already owned",
+      legendCenterX,
+      firstBaseline,
+    );
+    uiCtx.fillText(
+      hint,
+      legendCenterX,
+      firstBaseline + config.SHOP_MODAL_LEGEND_LINE_HEIGHT,
+    );
+    uiCtx.fillText(
+      "Press Escape to close the Shop.",
+      legendCenterX,
+      firstBaseline + config.SHOP_MODAL_LEGEND_LINE_HEIGHT * 2,
+    );
+
+    // Draw inventory items
+    const startX = modalX + 148;
+    const startY = modalY + 72;
+    const itemSpacingY = 53;
+    let index = 0;
+
+    uiCtx.save();
+    uiCtx.fillStyle = "#f7e78cff";
+    uiCtx.font = `20px ${config.FONT_NAME}`;
+
+    uiCtx.textAlign = "center";
+    // Add text shadow for better visibility
+    uiCtx.shadowColor = "black";
+    uiCtx.shadowOffsetX = 2;
+    uiCtx.shadowOffsetY = 2;
+    uiCtx.shadowBlur = 4;
+
+    uiCtx.fillText("Item", startX + 28, startY - 20);
+    uiCtx.fillText("Pack Size", startX + 140, startY - 20);
+    uiCtx.fillText("Price", startX + 290, startY - 20);
+    uiCtx.fillText("Stock", startX + 400, startY - 20);
+
+    uiCtx.restore();
+
+    for (const [type, item] of Object.entries(this._inventory)) {
+      if (item.quantity <= 0) {
+        continue;
+      }
+
+      const itemX = startX;
+      const itemY = startY + index * itemSpacingY;
+
+      // Draw item icon
+      const imageManager = ImageManager.getInstance();
+      const icon = imageManager.getInventoryTexture(
+        Number(type) as config.InventoryItemID,
+      );
+      if (icon) {
+        uiCtx.drawImage(
+          icon,
+          itemX - icon.width / 2 + itemSpacingY / 2,
+          itemY - icon.height / 2 + itemSpacingY / 2,
+          icon.width,
+          icon.height,
+        );
       }
 
       uiCtx.save();
-      const modalWidth = this._layoutImage.width;
-      const modalHeight = this._layoutImage.height;
-      const modalX = (viewport.width - modalWidth) / 2;
-      const modalY = (viewport.height - modalHeight) / 2;
-      uiCtx.drawImage(
-        this._layoutImage,
-        modalX,
-        modalY,
-        modalWidth,
-        modalHeight,
-      );
+      uiCtx.fillStyle = "#f7e78c";
 
-      // Draw instructions background
-      const padding = 5;
-      const bgWidth = 400;
-      const bgHeight = 72;
-      uiCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
-      uiCtx.fillRect(
-        (viewport.width - bgWidth) / 2 - padding,
-        viewport.height - 88 - padding,
-        bgWidth + padding * 2,
-        bgHeight + padding * 2,
-      );
+      const player = this.world.player;
+      const itemId = Number(type) as config.InventoryItemID;
+      const isWeapon = Object.values(
+        config.WEAPON_INVENTORY_ID_BY_WEAPON_TYPE,
+      ).includes(itemId);
 
-      const purchaseKeyCount = Object.values(this._inventory).filter(
-        (item) => item.quantity > 0,
-      ).length;
+      if (player && player.money < item.price * item.packSize) {
+        uiCtx.fillStyle = "#ff4d4d";
+      }
 
-      const hint =
-        purchaseKeyCount > 9
-          ? `Press buttons from 1 through 9 and 0 to make a purchase.`
-          : purchaseKeyCount === 0
-            ? "No items available for purchase."
-            : purchaseKeyCount === 1
-              ? "Press button 1 to make a purchase."
-              : `Press button from 1 through ${purchaseKeyCount} to make a purchase.`;
+      if (isWeapon && player?.hasInventoryItem(itemId)) {
+        uiCtx.fillStyle = "#4dff4d";
+      }
 
-      // Draw instructions text
-      uiCtx.fillStyle = "white";
-      uiCtx.textAlign = "center";
-      uiCtx.font = `14px ${config.FONT_NAME}`;
-      uiCtx.fillText(
-        "🟨 - available, 🟥 - not enough money, 🟩 - already owned",
-        viewport.width / 2,
-        viewport.height - 72,
-      );
-      uiCtx.fillText(hint, viewport.width / 2, viewport.height - 50);
-      uiCtx.fillText(
-        "Press Escape to close the Shop.",
-        viewport.width / 2,
-        viewport.height - 28,
-      );
-
-      // Draw inventory items
-      const startX = modalX + 148;
-      const startY = modalY + 72;
-      const itemSpacingY = 53;
-      let index = 0;
-
-      uiCtx.fillStyle = "#f7e78cff";
       uiCtx.font = `20px ${config.FONT_NAME}`;
 
-      uiCtx.textAlign = "center";
+      uiCtx.textAlign = "right";
       // Add text shadow for better visibility
       uiCtx.shadowColor = "black";
       uiCtx.shadowOffsetX = 2;
       uiCtx.shadowOffsetY = 2;
       uiCtx.shadowBlur = 4;
 
-      uiCtx.fillText("Item", startX + 28, startY - 20);
-      uiCtx.fillText("Pack Size", startX + 140, startY - 20);
-      uiCtx.fillText("Price", startX + 290, startY - 20);
-      uiCtx.fillText("Stock", startX + 400, startY - 20);
+      // Draw pack size
+      uiCtx.fillText(
+        `${item.packSize}`,
+        itemX + 174,
+        itemY + itemSpacingY / 2 + 5,
+      );
+
+      // Draw item price
+      uiCtx.fillText(
+        `$${item.price * item.packSize}`,
+        itemX + 328,
+        itemY + itemSpacingY / 2 + 5,
+      );
+
+      // Draw item stock
+      uiCtx.fillText(
+        `${item.quantity}`,
+        itemX + 418,
+        itemY + itemSpacingY / 2 + 5,
+      );
+
+      // Draw purchase button hint
+      uiCtx.fillText(
+        `${(index + 1) % 10}`,
+        itemX - 10,
+        itemY + itemSpacingY / 2 + 5,
+      );
 
       uiCtx.restore();
 
-      for (const [type, item] of Object.entries(this._inventory)) {
-        if (item.quantity <= 0) {
-          continue;
-        }
-
-        const itemX = startX;
-        const itemY = startY + index * itemSpacingY;
-
-        // Draw item icon
-        const imageManager = ImageManager.getInstance();
-        const icon = imageManager.getInventoryTexture(
-          Number(type) as config.InventoryItemID,
-        );
-        if (icon) {
-          uiCtx.drawImage(
-            icon,
-            itemX - icon.width / 2 + itemSpacingY / 2,
-            itemY - icon.height / 2 + itemSpacingY / 2,
-            icon.width,
-            icon.height,
-          );
-        }
-
-        uiCtx.save();
-        uiCtx.fillStyle = "#f7e78c";
-
-        const player = this.world.player;
-        const itemId = Number(type) as config.InventoryItemID;
-        const isWeapon = Object.values(
-          config.WEAPON_INVENTORY_ID_BY_WEAPON_TYPE,
-        ).includes(itemId);
-
-        if (player && player.money < item.price * item.packSize) {
-          uiCtx.fillStyle = "#ff4d4d";
-        }
-
-        if (isWeapon && player?.hasInventoryItem(itemId)) {
-          uiCtx.fillStyle = "#4dff4d";
-        }
-
-        uiCtx.font = `20px ${config.FONT_NAME}`;
-
-        uiCtx.textAlign = "right";
-        // Add text shadow for better visibility
-        uiCtx.shadowColor = "black";
-        uiCtx.shadowOffsetX = 2;
-        uiCtx.shadowOffsetY = 2;
-        uiCtx.shadowBlur = 4;
-
-        // Draw pack size
-        uiCtx.fillText(
-          `${item.packSize}`,
-          itemX + 174,
-          itemY + itemSpacingY / 2 + 5,
-        );
-
-        // Draw item price
-        uiCtx.fillText(
-          `$${item.price * item.packSize}`,
-          itemX + 328,
-          itemY + itemSpacingY / 2 + 5,
-        );
-
-        // Draw item stock
-        uiCtx.fillText(
-          `${item.quantity}`,
-          itemX + 418,
-          itemY + itemSpacingY / 2 + 5,
-        );
-
-        // Draw purchase button hint
-        uiCtx.fillText(
-          `${(index + 1) % 10}`,
-          itemX - 10,
-          itemY + itemSpacingY / 2 + 5,
-        );
-
-        uiCtx.restore();
-
-        index++;
-      }
+      index++;
     }
+
+    // Undo the block's translate and scale
+    uiCtx.restore();
   }
 
   applyFromGameStateDelta(shopData: ShopUpdate): void {

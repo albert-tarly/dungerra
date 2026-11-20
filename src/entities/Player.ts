@@ -85,6 +85,17 @@ export class Player extends ScreenObject implements IPlayer {
     this._inventoryOpen = !this._inventoryOpen;
   }
 
+  get inventoryPanelTop(): number | null {
+    if (!this._inventoryImage || !this._inventoryOpen || this.world.gameOver) {
+      return null;
+    }
+    return (
+      viewport.height -
+      this._inventoryImage.height -
+      config.INVENTORY_MARGIN_BOTTOM
+    );
+  }
+
   static createFromSessionPlayer(
     world: IWorld,
     sessionPlayer: ISessionPlayer,

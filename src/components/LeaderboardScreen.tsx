@@ -198,7 +198,7 @@ export const LeaderboardScreen: React.FC = () => {
     setShowModal(false);
 
     try {
-      const session = await sessionManager.startSession(
+      const session = await sessionManager.createSession(
         trimmedName,
         difficulty,
       );

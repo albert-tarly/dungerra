@@ -193,4 +193,10 @@ export class SocketService {
   public onPlayerLeft(callback: (message: PlayerLeaveMessage) => void): void {
     this._playerLeftHandler = callback;
   }
+
+  public clearHandlers(): void {
+    this._gameStateDeltaHandler = null;
+    this._playerJoinedHandler = null;
+    this._playerLeftHandler = null;
+  }
 }

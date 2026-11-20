@@ -25,6 +25,9 @@ export interface IPlayer extends IScreenObject, IDrawable, IUpdatable, IVisor {
   inventory: InventoryItemMessage[];
   hasInventoryItem(itemType: InventoryItemID): boolean;
   toggleInventory(): void;
+  // Screen y (CSS px) of the inventory panel's top edge, or null when the
+  // panel is hidden. Overlays use it to stay clear of the panel.
+  inventoryPanelTop: number | null;
   applyFromGameStateDelta(changeset: PlayerUpdate): void;
 }
 

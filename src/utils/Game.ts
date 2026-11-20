@@ -26,6 +26,7 @@ export class Game {
   private _sessionManager: SessionManager;
   private _started: boolean = false;
   private _resizeObserver: ResizeObserver | null = null;
+  private _listenersAbort = new AbortController();
 
   public get world(): World | null {
     return this._world;
@@ -176,27 +177,51 @@ export class Game {
   }
 
   private setupEventListeners(): void {
-    window.addEventListener("keydown", (e) => {
-      this._activeKeys.add(e.code);
-      this.handleKeyDown(e);
-    });
+    // stop() aborts this, removing every window listener at once. Otherwise a
+    // stopped game keeps reacting to keys (e.g. R sends a respawn request).
+    const { signal } = this._listenersAbort;
 
-    window.addEventListener("keyup", (e) => {
-      this._activeKeys.delete(e.code);
-    });
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        this._activeKeys.add(e.code);
+        this.handleKeyDown(e);
+      },
+      { signal },
+    );
 
-    window.addEventListener("mousemove", (e) => this.handleMouseMove(e));
-    window.addEventListener("mousedown", (e) => this.handleMouseDown(e));
+    window.addEventListener(
+      "keyup",
+      (e) => {
+        this._activeKeys.delete(e.code);
+      },
+      { signal },
+    );
+
+    window.addEventListener("mousemove", (e) => this.handleMouseMove(e), {
+      signal,
+    });
+    window.addEventListener("mousedown", (e) => this.handleMouseDown(e), {
+      signal,
+    });
     // Listen on window so releasing outside the canvas still stops firing
-    window.addEventListener("mouseup", (e) => {
-      if (e.button === 0) {
-        this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
-      }
-    });
+    window.addEventListener(
+      "mouseup",
+      (e) => {
+        if (e.button === 0) {
+          this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
+        }
+      },
+      { signal },
+    );
     // A button held while the window loses focus never gets its mouseup
-    window.addEventListener("blur", () => {
-      this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
-    });
+    window.addEventListener(
+      "blur",
+      () => {
+        this._activeKeys.delete(config.MOUSE_SHOOT_KEY);
+      },
+      { signal },
+    );
 
     this._sessionManager.onGameStateDelta((changeset) => {
       if (this._world) {
@@ -205,11 +230,9 @@ export class Game {
       }
     });
 
-    this._sessionManager.onPlayerJoined(({ player }) => {
-      if (player && this._world) {
-        this._world.addOtherPlayer(player);
-      }
-    });
+    // Join messages are broadcast to the whole session, wherever the new
+    // player is, so they don't create anything: the player appears when a
+    // delta adds them, i.e. once they are actually visible.
 
     this._sessionManager.onPlayerLeft(({ playerId }) => {
       if (this._world) {
@@ -271,6 +294,9 @@ export class Game {
       );
 
       this._started = true;
+      // Only now: the handlers (registered in the constructor) and the world
+      // must both exist when the server's initial full snapshot arrives.
+      this._sessionManager.connect();
       requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     }
   }
@@ -293,6 +319,7 @@ export class Game {
 
   public stop(): void {
     this._started = false;
+    this._listenersAbort.abort();
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
     AudioManager.getInstance().stopAllSounds();

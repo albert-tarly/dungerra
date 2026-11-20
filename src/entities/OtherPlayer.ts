@@ -47,6 +47,15 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
 
     this._name = playerData.username;
     this._rotation = rotation;
+    // The server adds a player with their full state (e.g. already wearing
+    // goggles, dead, or just respawned) and later sends only changes.
+    this._lives = playerData.lives;
+    this.dead = !playerData.isAlive;
+    this._invulnerableTimer = playerData.invulnerableTimer;
+    this._nightVisionTimer = playerData.nightVisionTimer;
+    if (playerData.selectedGunType) {
+      this._weaponType = playerData.selectedGunType as config.WeaponType;
+    }
     this._poses = new PoseBuffer(
       world.snapshotTime,
       point.x,
@@ -95,19 +104,16 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
     }
 
     const screenPoint = this.world.worldToScreenCoordinates(this.getPosition());
-    let shouldDraw = true;
-
+    // A goggled player carries no torch and a dead one none either, so they
+    // show only in torchlight (any torch, as for enemies), unless this player
+    // also wears goggles and the other one is alive.
+    const isHiddenInDark =
+      !this.isAlive() ||
+      (this.hasNightVision() && !this.world.player.hasNightVision());
     if (
-      (!this.world.player.hasNightVision() && this.hasNightVision()) ||
-      !this.isAlive()
+      isHiddenInDark &&
+      !this.world.isLitByTorch(this.getPosition(), this.width)
     ) {
-      const distance = this.getPosition().distanceTo(
-        this.world.player.getTorchPoint(),
-      );
-      shouldDraw = distance <= this.world.torchRadius + this.width;
-    }
-
-    if (!shouldDraw) {
       return;
     }
 

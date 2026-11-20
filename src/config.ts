@@ -111,6 +111,13 @@ export const MESSAGE_PADDING_BOTTOM = 160;
 
 // Shop settings
 export const SHOP_SIZE = 64;
+// The shop window and its legend are scaled down as one block to fit the
+// space above the inventory panel (or the whole screen when it is hidden)
+export const SHOP_MODAL_SCREEN_PADDING = 16; // CSS px kept clear on every side of the block
+export const SHOP_MODAL_LEGEND_GAP = 12; // Between the shop window and the legend, unscaled px
+export const SHOP_MODAL_LEGEND_WIDTH = 420; // Legend background width, unscaled px
+export const SHOP_MODAL_LEGEND_LINE_HEIGHT = 22; // Unscaled px
+export const SHOP_MODAL_LEGEND_PADDING = 8; // Around the legend text, unscaled px
 
 // Asset paths
 export const TEXTURES = {

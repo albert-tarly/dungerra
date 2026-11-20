@@ -34,16 +34,17 @@ export class SessionManager {
     return await HttpClient.get<ISession[]>("/sessions");
   }
 
-  public async startSession(
+  // Creating and joining are REST only. The socket is opened by connect(),
+  // once the game is ready: the server sends the full world exactly once,
+  // right after the socket opens, and only changes after that. A snapshot that
+  // arrives before the game has registered its handlers is lost for good, and
+  // the player never appears (a black screen).
+  public async createSession(
     sessionName: string,
     difficulty: IDifficultyRequest,
   ): Promise<ISession> {
     const request: ICreateSessionRequest = { name: sessionName, difficulty };
-    const session = await HttpClient.post<ISession>("/sessions", request);
-
-    this.currentSession = session;
-    this.socketService.connect(session.id);
-    return session;
+    return await HttpClient.post<ISession>("/sessions", request);
   }
 
   public async joinSession(sessionId: string): Promise<ISession> {
@@ -51,8 +52,15 @@ export class SessionManager {
       `/sessions/${sessionId}/join`,
     );
     this.currentSession = session;
-    this.socketService.connect(session.id);
     return session;
+  }
+
+  public connect(): void {
+    if (!this.currentSession) {
+      console.warn("Attempting to connect without a joined session");
+      return;
+    }
+    this.socketService.connect(this.currentSession.id);
   }
 
   public async deleteSession(sessionId: string): Promise<void> {
@@ -64,10 +72,10 @@ export class SessionManager {
   }
 
   public endSession(): void {
-    if (this.currentSession) {
-      this.socketService.disconnect();
-      this.currentSession = null;
-    }
+    this.socketService.disconnect();
+    // A stopped game must not keep receiving messages meant for the next one
+    this.socketService.clearHandlers();
+    this.currentSession = null;
   }
 
   public getCurrentSession(): ISession | null {
