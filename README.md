@@ -72,5 +72,6 @@ In production the app is served under `/dungerra/` on GitHub Pages. Every push t
 - Left mouse button / Space: Shoot (hold to keep firing)
 - 1..8: Use inventory item
 - ~ or E: Toggle inventory
-- Enter / Escape: Enter/exit shop
+- Enter: Enter shop
+- Escape: Exit shop; outside a shop, open the game menu (Resume / Leave Game, back to the lobby). The game keeps running while the menu is open.
 - F3: Toggle debug mode

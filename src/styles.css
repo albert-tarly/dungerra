@@ -528,6 +528,12 @@ button:active {
   flex: 1;
 }
 
+.game-menu-note {
+  margin: 0 0 20px;
+  text-align: center;
+  color: #aaa;
+}
+
 .modal-buttons button:disabled {
   opacity: 0.5;
   cursor: not-allowed;

@@ -26,6 +26,17 @@ export const GameScreen: React.FC = () => {
   const audioManager = useMemo(() => AudioManager.getInstance(), []);
   const [isMuted, setIsMuted] = useState(audioManager.isMuted);
   const [volume, setVolume] = useState(audioManager.getMasterVolume());
+  // Mirrors Game's menu flag (Escape); changes only on open and close
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleResume = useCallback(() => {
+    gameRef.current?.setMenuOpen(false);
+  }, []);
+
+  // Unmounting this screen ends the session (see the cleanup effects)
+  const handleLeave = useCallback(() => {
+    void navigate("/sessions");
+  }, [navigate]);
 
   const handleVolumeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,6 +103,7 @@ export const GameScreen: React.FC = () => {
           uiCanvasRef.current!,
         );
         gameRef.current = game;
+        game.onMenuToggle = setMenuOpen;
         game.start(session);
       } catch {
         setError("Failed to join session. Redirecting...");
@@ -170,6 +182,29 @@ export const GameScreen: React.FC = () => {
           }
         />
       </div>
+      {menuOpen && (
+        <div
+          className="modal show"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="game-menu-title"
+        >
+          <div className="modal-content">
+            <h2 id="game-menu-title">Game Menu</h2>
+            <p className="game-menu-note">
+              The game keeps running while this menu is open.
+            </p>
+            <div className="modal-buttons">
+              <button className="button-secondary" onClick={handleLeave}>
+                Leave Game
+              </button>
+              <button onClick={handleResume} autoFocus>
+                Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

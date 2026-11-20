@@ -27,9 +27,32 @@ export class Game {
   private _started: boolean = false;
   private _resizeObserver: ResizeObserver | null = null;
   private _listenersAbort = new AbortController();
+  private _menuOpen: boolean = false;
+
+  // Called when the in-game menu opens or closes. GameScreen renders the menu.
+  public onMenuToggle: ((open: boolean) => void) | null = null;
 
   public get world(): World | null {
     return this._world;
+  }
+
+  public get menuOpen(): boolean {
+    return this._menuOpen;
+  }
+
+  // The world keeps running while the menu is open (it lives on the server
+  // and is shared), so the menu only releases the player's controls.
+  public setMenuOpen(open: boolean): void {
+    if (open === this._menuOpen) {
+      return;
+    }
+    this._menuOpen = open;
+    if (open) {
+      // Held keys and the mouse button would otherwise keep the player
+      // moving or firing until released
+      this._activeKeys.clear();
+    }
+    this.onMenuToggle?.(open);
   }
 
   constructor(
@@ -184,6 +207,14 @@ export class Game {
     window.addEventListener(
       "keydown",
       (e) => {
+        if (this._menuOpen) {
+          // Only Escape (close) reaches the game; Enter and Space go to the
+          // focused menu button
+          if (e.code === "Escape" && !e.repeat) {
+            this.setMenuOpen(false);
+          }
+          return;
+        }
         this._activeKeys.add(e.code);
         this.handleKeyDown(e);
       },
@@ -254,8 +285,14 @@ export class Game {
     if (e.code === "Enter") {
       this._world?.openShopModal();
     }
-    if (e.code === "Escape") {
-      this._world?.closeShopModal();
+    // Escape closes the shop first, and opens the game menu otherwise.
+    // Ignoring auto-repeat stops a held key from flickering the menu.
+    if (e.code === "Escape" && !e.repeat) {
+      if (this._world?.isPlayerInShop()) {
+        this._world.closeShopModal();
+      } else {
+        this.setMenuOpen(true);
+      }
     }
   }
 
