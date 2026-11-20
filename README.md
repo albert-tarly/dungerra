@@ -22,6 +22,21 @@ npm run dev
 npm run build
 ```
 
+4. Build for the desktop app and LAN hosts (output in `dist-desktop/`):
+
+```bash
+npm run build:desktop
+```
+
+The desktop build is served by the game server itself. It uses the page's own origin as the server address and is served at `/` rather than `/dungerra/`. To try it, start the server with `STATIC_DIR` pointing at it and open the server's address:
+
+```bash
+cd ../dungerra-api
+DATA_DIR=data/desktop STATIC_DIR=../dungerra/dist-desktop go run main.go -no-dotenv
+```
+
+See `../dungerra-api/docs/decisions/desktop-version.md` for the design.
+
 ## Development
 
 The game uses TypeScript, React, and HTML5 Canvas for rendering. The main components are:

@@ -1,7 +1,19 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const webpack = require("webpack");
 const { env } = require("process");
+
+// "web" (GitHub Pages, talks to the hosted server) or "desktop" (served by the
+// game server itself: desktop app and LAN hosts). See src/config.ts.
+const target = env.DUNGERRA_TARGET === "desktop" ? "desktop" : "web";
+const isDesktop = target === "desktop";
+const isProduction = env.NODE_ENV === "production";
+
+// GitHub Pages answers unknown paths with 404.html, so deep links such as
+// /dungerra/<sessionId> still load the app and the router takes over. The game
+// server falls back to index.html itself, so desktop builds don't need it.
+const pageFiles = isDesktop ? ["index.html"] : ["index.html", "404.html"];
 
 module.exports = {
   entry: "./src/index.tsx",
@@ -42,25 +54,27 @@ module.exports = {
   },
   output: {
     filename: "[name].[contenthash].js",
-    path: path.resolve(__dirname, "dist"),
+    // Separate folders, so a desktop build never ends up on GitHub Pages
+    path: path.resolve(__dirname, isDesktop ? "dist-desktop" : "dist"),
     clean: true,
-    publicPath: process.env.NODE_ENV === "production" ? "/dungerra/" : "/",
+    // Must match ROUTER_BASENAME in src/config.ts
+    publicPath: isProduction && !isDesktop ? "/dungerra/" : "/",
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: "./src/index.html",
-      filename: "index.html",
-      inject: "body",
-      hash: true,
+    // Always defined: the browser has no `process`, so an undefined
+    // process.env.DUNGERRA_TARGET would throw at runtime
+    new webpack.DefinePlugin({
+      "process.env.DUNGERRA_TARGET": JSON.stringify(target),
     }),
-    // GitHub Pages answers unknown paths with 404.html, so deep links such as
-    // /dungerra/<sessionId> still load the app and the router takes over
-    new HtmlWebpackPlugin({
-      template: "./src/index.html",
-      filename: "404.html",
-      inject: "body",
-      hash: true,
-    }),
+    ...pageFiles.map(
+      (filename) =>
+        new HtmlWebpackPlugin({
+          template: "./src/index.html",
+          filename,
+          inject: "body",
+          hash: true,
+        }),
+    ),
     new CopyWebpackPlugin({
       patterns: [{ from: "src/favicon.png", to: "favicon.png" }],
     }),

@@ -3,11 +3,23 @@ import { BonusType } from "./types/screen-objects/IBonus";
 import { IDifficultySettings } from "./types/session";
 import { Point2D } from "./utils/geometry/Point2D";
 
-export const API_DOMAIN =
-  process.env.NODE_ENV === "production"
+// "desktop" builds are served by the game server itself (the desktop app or a
+// LAN host), so the API lives on the page's own origin. "web" builds talk to
+// the hosted server. Set at build time by webpack (DUNGERRA_TARGET).
+export const IS_DESKTOP_BUILD = process.env.DUNGERRA_TARGET === "desktop";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+export const API_DOMAIN = IS_DESKTOP_BUILD
+  ? window.location.origin
+  : IS_PRODUCTION
     ? "https://dungerra.onrender.com"
     : "http://localhost:8080";
 export const API_BASE_URL = `${API_DOMAIN}/api/v1`;
+
+// GitHub Pages serves the web build under /dungerra/; a game server serves
+// the desktop build at its root. Must match publicPath in webpack.config.js.
+export const ROUTER_BASENAME =
+  IS_PRODUCTION && !IS_DESKTOP_BUILD ? "/dungerra" : "/";
 
 // Display (the view size is dynamic, see utils/Viewport.ts)
 export const FONT_NAME = "Texturina";

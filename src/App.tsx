@@ -11,12 +11,11 @@ import { LoginScreen } from "./components/LoginScreen";
 import { LeaderboardScreen } from "./components/LeaderboardScreen";
 import GameScreen from "./components/GameScreen";
 import { LegendScreen } from "./components/LegendScreen";
+import { ROUTER_BASENAME } from "./config";
 
 export const App: React.FC = () => {
   return (
-    <Router
-      basename={process.env.NODE_ENV === "production" ? "/dungerra" : "/"}
-    >
+    <Router basename={ROUTER_BASENAME}>
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LoginScreen />} />
