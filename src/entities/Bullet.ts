@@ -35,12 +35,12 @@ export class Bullet extends ScreenObject implements IBullet {
     return this._active;
   }
 
-  get velocity(): Vector2D {
-    return this._velocity;
-  }
-
   set active(value: boolean) {
     this._active = value;
+  }
+
+  get velocity(): Vector2D {
+    return this._velocity;
   }
 
   constructor(
@@ -64,13 +64,13 @@ export class Bullet extends ScreenObject implements IBullet {
     const imageManager = ImageManager.getInstance();
     // Preload rocket image
     if (!Bullet._imageRocket) {
-      imageManager.loadImage(config.TEXTURES.BULLET_ROCKET).then((img) => {
+      void imageManager.loadImage(config.TEXTURES.BULLET_ROCKET).then((img) => {
         Bullet._imageRocket = img;
       });
     }
 
     if (!Bullet._imageRocketBlast) {
-      imageManager
+      void imageManager
         .loadImage(config.ANIMATIONS.EXPLOSION.image)
         .then((image) => {
           Bullet._imageRocketBlast = image;

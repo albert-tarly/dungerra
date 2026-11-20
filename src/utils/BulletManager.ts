@@ -8,9 +8,9 @@ import { Bullet } from "../entities/Bullet";
 import { closestPointOnLineSegment } from "./closestPointOnLineSegment";
 
 export class BulletManager implements IBulletManager {
-  private _bullets: Map<string, IBullet> = new Map();
-  private _bulletsSoundCache: Set<string> = new Set();
-  private _bulletsRemovedSoundCache: Set<string> = new Set();
+  private _bullets = new Map<string, IBullet>();
+  private _bulletsSoundCache = new Set<string>();
+  private _bulletsRemovedSoundCache = new Set<string>();
 
   get bullets(): IBullet[] {
     return Array.from(this._bullets.values());
@@ -38,7 +38,7 @@ export class BulletManager implements IBulletManager {
       return;
     }
 
-    let soundPosition = bullet.getPosition().clone();
+    const soundPosition = bullet.getPosition().clone();
     if (bullet.weaponType === "railgun") {
       // Find closest point on the ray to the player for sound position
       const rayEnd = bullet
@@ -66,7 +66,7 @@ export class BulletManager implements IBulletManager {
 
     const cacheKey = this.getBulletCacheKey(
       bullet.id,
-      bullet.batchId || "",
+      bullet.batchId ?? "",
       bullet.weaponType,
     );
 
@@ -74,9 +74,7 @@ export class BulletManager implements IBulletManager {
     if (bulletData.isJustSpawned && !this._bulletsSoundCache.has(cacheKey)) {
       this._bulletsSoundCache.add(cacheKey);
       AudioManager.getInstance().playSound(
-        config.BULLET_SOUND_BY_WEAPON_TYPE[
-          bullet.weaponType as config.WeaponType
-        ],
+        config.BULLET_SOUND_BY_WEAPON_TYPE[bullet.weaponType],
         { volume },
       );
     }
@@ -111,7 +109,7 @@ export class BulletManager implements IBulletManager {
   }
 
   getBulletById(bulletId: string): IBullet | null {
-    return this._bullets.get(bulletId) || null;
+    return this._bullets.get(bulletId) ?? null;
   }
 
   hasSoundPlayedForBullet(bulletData: BulletMessage): boolean {
@@ -145,7 +143,7 @@ export class BulletManager implements IBulletManager {
           this._bulletsSoundCache.delete(
             this.getBulletCacheKey(
               bullet.id,
-              bullet.batchId || "",
+              bullet.batchId ?? "",
               bullet.weaponType,
             ),
           );

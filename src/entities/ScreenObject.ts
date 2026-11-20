@@ -17,7 +17,7 @@ export class ScreenObject implements IScreenObject {
     protected _point: IPoint,
     protected _width: number,
     protected _height: number,
-    protected _id: string = uuidv4()
+    protected _id: string = uuidv4(),
   ) {
     ScreenObject._objectNumber++;
   }
@@ -48,7 +48,7 @@ export class ScreenObject implements IScreenObject {
 
   getCollisionRect(
     dx: number = 0,
-    dy: number = 0
+    dy: number = 0,
   ): { left: number; top: number; width: number; height: number } {
     return {
       left: this.x - this.width / 2 + dx,
@@ -75,7 +75,7 @@ export class ScreenObject implements IScreenObject {
       collisionRect.left,
       collisionRect.top,
       collisionRect.width,
-      collisionRect.height
+      collisionRect.height,
     );
   }
 }

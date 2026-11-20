@@ -10,14 +10,14 @@ import {
   Player as PlayerMessage,
   PlayerUpdate,
 } from "../types/socketEvents";
-import { SessionPlayer } from "../types/session";
+import { ISessionPlayer } from "../types/session";
 import { Point2D } from "../utils/geometry/Point2D";
 import { ImageManager } from "../utils/ImageManager";
-import { Pose, PoseBuffer } from "../utils/PoseBuffer";
+import { IPose, PoseBuffer } from "../utils/PoseBuffer";
 
 export class Player extends ScreenObject implements IPlayer {
   private _poses: PoseBuffer;
-  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
+  private _pose: IPose = { x: 0, y: 0, rotation: 0 };
   private _nightVisionTimer: number = 0;
   private _rotation: number = 0;
   private _bulletsLeft: number = config.PLAYER_MAX_BULLETS;
@@ -87,7 +87,7 @@ export class Player extends ScreenObject implements IPlayer {
 
   static createFromSessionPlayer(
     world: IWorld,
-    sessionPlayer: SessionPlayer,
+    sessionPlayer: ISessionPlayer,
   ): IPlayer {
     const player = new Player(
       world,
@@ -120,11 +120,11 @@ export class Player extends ScreenObject implements IPlayer {
 
     // Load inventory texture
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(config.TEXTURES.INVENTORY).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.INVENTORY).then((img) => {
       this._inventoryImage = img;
     });
 
-    imageManager.loadImage(config.TEXTURES.BLOOD).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.BLOOD).then((img) => {
       this._imageDead = img;
     });
   }
@@ -143,7 +143,8 @@ export class Player extends ScreenObject implements IPlayer {
       .rotateAroundPointCoordinates(this.getPosition(), this._rotation);
   }
 
-  takeDamage(amount: number): void {
+  // The server lowered our lives: play the hurt or death sound
+  private takeDamage(amount: number): void {
     this._lives -= amount;
     AudioManager.getInstance().playSound(
       this._lives > 0 ? config.SOUNDS.PLAYER_HURT : config.SOUNDS.PLAYER_DEAD,
@@ -420,7 +421,7 @@ export class Player extends ScreenObject implements IPlayer {
       ctx.font = `12px ${config.FONT_NAME}`;
       ctx.textAlign = "left";
       ctx.fillText(
-        `Collision hits: ${this._debugData.collisionHits}`,
+        `Collision hits: ${JSON.stringify(this._debugData.collisionHits)}`,
         10,
         viewport.height - 38,
       );
@@ -437,8 +438,6 @@ export class Player extends ScreenObject implements IPlayer {
     return this._lives > 0;
   }
 
-  die(): void {}
-
   get lives(): number {
     return this._lives;
   }
@@ -446,10 +445,6 @@ export class Player extends ScreenObject implements IPlayer {
   recordKill(reward: number): void {
     this._kills++;
     this._money += reward;
-  }
-
-  isInvulnerable(): boolean {
-    return this._invulnerableTimer > 0;
   }
 
   static fromGameState(world: IWorld, playerData: PlayerMessage): IPlayer {

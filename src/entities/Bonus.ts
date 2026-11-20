@@ -22,7 +22,7 @@ export class Bonus extends ScreenObject implements IBonus {
 
   constructor(
     private world: IWorld,
-    data: BonusMessage
+    data: BonusMessage,
   ) {
     // Load appropriate texture
     let texturePath: string = "";
@@ -47,7 +47,7 @@ export class Bonus extends ScreenObject implements IBonus {
     this._belongsToPlayer = data.droppedBy === world.player?.id;
 
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(texturePath).then((img) => {
+    void imageManager.loadImage(texturePath).then((img) => {
       this.image = img;
     });
   }
@@ -70,7 +70,7 @@ export class Bonus extends ScreenObject implements IBonus {
       }
 
       const distToOther = this.getPosition().distanceTo(
-        otherPlayer.getPosition()
+        otherPlayer.getPosition(),
       );
       if (distToOther <= this.world.torchRadius + this.width) {
         shouldDraw = true;
@@ -91,7 +91,7 @@ export class Bonus extends ScreenObject implements IBonus {
       -this.width / 2,
       -this.height / 2,
       this.width,
-      this.height
+      this.height,
     );
     ctx.restore();
   }

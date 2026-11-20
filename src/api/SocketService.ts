@@ -91,7 +91,7 @@ export class SocketService {
   }
 
   public emit(message: GameMessage): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (this.socket?.readyState !== WebSocket.OPEN) {
       console.warn("Attempting to emit without socket connection");
       this.messageQueue.push(message);
       return;
@@ -100,7 +100,7 @@ export class SocketService {
     this.socket.send(
       this.binaryMode
         ? GameMessage.toBinary(message)
-        : GameMessage.toJsonString(message)
+        : GameMessage.toJsonString(message),
     );
   }
 
@@ -124,7 +124,7 @@ export class SocketService {
       console.log(
         "Disconnected from WebSocket server",
         event.code,
-        event.reason
+        event.reason,
       );
 
       // Attempt to reconnect if not closed intentionally
@@ -135,7 +135,7 @@ export class SocketService {
       ) {
         this.reconnectAttempts++;
         console.log(
-          `Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
+          `Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`,
         );
         setTimeout(() => {
           if (this.sessionId) {
@@ -152,8 +152,8 @@ export class SocketService {
     this.socket.onmessage = (event) => {
       try {
         const message = this.binaryMode
-          ? GameMessage.fromBinary(new Uint8Array(event.data))
-          : GameMessage.fromJsonString(event.data);
+          ? GameMessage.fromBinary(new Uint8Array(event.data as ArrayBuffer))
+          : GameMessage.fromJsonString(event.data as string);
         this.handleMessage(message);
       } catch (error) {
         console.error("Failed to parse WebSocket message:", error);
@@ -181,7 +181,7 @@ export class SocketService {
   }
 
   public onGameStateDelta(
-    callback: (changeset: GameStateDeltaMessage) => void
+    callback: (changeset: GameStateDeltaMessage) => void,
   ): void {
     this._gameStateDeltaHandler = callback;
   }

@@ -27,8 +27,8 @@ export const LegendScreen: React.FC = () => {
 
       <div className="text" id="legend">
         <p>
-          You can't remember your name, or how you got here, but you know you
-          must survive. There are dangers lurking in every shadow of this
+          You can&apos;t remember your name, or how you got here, but you know
+          you must survive. There are dangers lurking in every shadow of this
           freezing wasteland. There are others like you, lost and fighting for
           their lives. Stay alert and trust no one.
         </p>
@@ -43,8 +43,8 @@ export const LegendScreen: React.FC = () => {
         </p>
 
         <p>
-          This is you, the lone survivor. Use arrow keys or A W S D to move,
-          and the mouse to aim.
+          This is you, the lone survivor. Use arrow keys or A W S D to move, and
+          the mouse to aim.
         </p>
         <p className="light">
           <img
@@ -56,8 +56,8 @@ export const LegendScreen: React.FC = () => {
         </p>
 
         <p>
-          You are equipped with basic blaster to start your journey. Use
-          the left mouse button or spacebar to shoot.
+          You are equipped with basic blaster to start your journey. Use the
+          left mouse button or spacebar to shoot.
         </p>
         <div className="bullets bullets1">
           <div className="bullet bullet-player"></div>
@@ -93,7 +93,7 @@ export const LegendScreen: React.FC = () => {
         </p>
 
         <p>
-          Eliminate them to earn rewards and improve your skills. There's a
+          Eliminate them to earn rewards and improve your skills. There&apos;s a
           slight chance they might drop rare items.
         </p>
 
@@ -137,7 +137,7 @@ export const LegendScreen: React.FC = () => {
           </figure>
         </div>
 
-        <p>Once you're around, press Enter to visit the shop.</p>
+        <p>Once you&apos;re around, press Enter to visit the shop.</p>
 
         <p className="shop">
           <img
@@ -153,7 +153,7 @@ export const LegendScreen: React.FC = () => {
           <span className="yellow">Yellow</span> rows are items available for
           purchase. <span className="red">Red</span> rows indicate items you
           cannot afford. <span className="green">Green</span> ones are the
-          weapons you already have, so you can't buy them again.
+          weapons you already have, so you can&apos;t buy them again.
         </p>
 
         <p>

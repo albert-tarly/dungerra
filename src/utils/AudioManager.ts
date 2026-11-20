@@ -1,16 +1,16 @@
-export type PlaySoundOptions = {
+export interface IPlaySoundOptions {
   volume?: number;
   loop?: boolean;
   offset?: number;
   when?: number;
-};
+}
 
 export class AudioManager {
   private static instance: AudioManager;
   private audioContext: AudioContext;
   private soundBuffers: Map<string, AudioBuffer>;
   private loadingPromises: Map<string, Promise<void>>;
-  private activeSources: Map<string, Set<AudioBufferSourceNode>> = new Map();
+  private activeSources = new Map<string, Set<AudioBufferSourceNode>>();
   private masterGainNode: GainNode;
   private masterVolume: number;
   private _isMuted: boolean = false;
@@ -53,7 +53,7 @@ export class AudioManager {
     await loadingPromise;
   }
 
-  playSound(soundPath: string, options?: PlaySoundOptions): void {
+  playSound(soundPath: string, options?: IPlaySoundOptions): void {
     const buffer = this.soundBuffers.get(soundPath);
     if (!buffer) {
       console.warn(`Sound not loaded: ${soundPath}`);
@@ -94,7 +94,7 @@ export class AudioManager {
       activeSources.forEach((source) => {
         try {
           source.stop();
-        } catch (e) {
+        } catch {
           // Source might already be stopped
         }
       });
@@ -103,11 +103,11 @@ export class AudioManager {
   }
 
   stopAllSounds(): void {
-    this.activeSources.forEach((sources, soundPath) => {
+    this.activeSources.forEach((sources) => {
       sources.forEach((source) => {
         try {
           source.stop();
-        } catch (e) {
+        } catch {
           // Source might already be stopped
         }
       });

@@ -1,7 +1,11 @@
 import * as config from "../config";
 
-export type Pose = { x: number; y: number; rotation: number };
-type Snapshot = Pose & { time: number };
+export interface IPose {
+  x: number;
+  y: number;
+  rotation: number;
+}
+type Snapshot = IPose & { time: number };
 
 // Plenty for INTERPOLATION_DELAY_MS at the server tick rate
 const MAX_SNAPSHOTS = 16;
@@ -53,7 +57,7 @@ export class PoseBuffer {
   }
 
   /** Writes the pose at `time` (server ms) into `out` and returns it. */
-  sample(time: number, out: Pose): Pose {
+  sample(time: number, out: IPose): IPose {
     const snapshots = this._snapshots;
     const first = snapshots[0];
     const last = snapshots[snapshots.length - 1];

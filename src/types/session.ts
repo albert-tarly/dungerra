@@ -1,4 +1,4 @@
-export interface SessionPlayer {
+export interface ISessionPlayer {
   player_id: string;
   name: string;
   lives: number;
@@ -13,7 +13,7 @@ export interface SessionPlayer {
   };
 }
 
-export interface Session {
+export interface ISession {
   id: string;
   name: string;
   startedAt: string;
@@ -21,8 +21,8 @@ export interface Session {
   score: number;
   kills: number;
   money: number;
-  world_map: Record<string, SessionChunk>;
-  players: Record<string, SessionPlayer>;
+  world_map: Record<string, ISessionChunk>;
+  players: Record<string, ISessionPlayer>;
   max_players?: number;
   is_private?: boolean;
   host: {
@@ -32,13 +32,13 @@ export interface Session {
   };
 }
 
-export interface CreateSessionRequest {
+export interface ICreateSessionRequest {
   name: string;
 }
 
-export interface SessionChunk {
+export interface ISessionChunk {
   chunk_id: string;
   x: number;
   y: number;
-  objects: {};
+  objects: Record<string, unknown>;
 }

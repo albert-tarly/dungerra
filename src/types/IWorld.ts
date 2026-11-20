@@ -6,7 +6,6 @@ import { IPoint } from "./geometry/IPoint";
 import { IOtherPlayer } from "./screen-objects/IOtherPlayer";
 import { GameStateDeltaMessage, Player as PlayerMessage } from "./socketEvents";
 import { IShop } from "./screen-objects/IShop";
-import { InventoryItemID } from "../config";
 import { IRay } from "./screen-objects/IRay";
 
 export interface IWorld {
@@ -39,13 +38,13 @@ export interface IWorld {
   draw(
     ctx: CanvasRenderingContext2D,
     lightCtx: CanvasRenderingContext2D,
-    uiCtx: CanvasRenderingContext2D
+    uiCtx: CanvasRenderingContext2D,
   ): void;
   worldToScreenCoordinates(point: IPoint): IPoint;
   addOtherPlayer(player: PlayerMessage): void;
   removeOtherPlayer(playerId: string): void;
   applyGameStateDelta(
     changeset: GameStateDeltaMessage,
-    currentPlayerId: string
+    currentPlayerId: string,
   ): void;
 }

@@ -14,11 +14,11 @@ export class Wall extends ScreenObject implements IWall {
     width: number,
     height: number,
     private _orientation: "vertical" | "horizontal",
-    id?: string
+    id?: string,
   ) {
     super(point, width, height, id);
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(config.TEXTURES.WALL).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.WALL).then((img) => {
       this.image = img;
     });
   }
@@ -33,7 +33,7 @@ export class Wall extends ScreenObject implements IWall {
     }
 
     const screenLeftTop = this.world.worldToScreenCoordinates(
-      this.getLeftTopCorner()
+      this.getLeftTopCorner(),
     );
 
     // The UI layer is only drawn on in debug mode; skip its transforms otherwise
@@ -79,7 +79,7 @@ export class Wall extends ScreenObject implements IWall {
 
     if (debug) {
       const screenPoint = this.world.worldToScreenCoordinates(
-        this.getPosition()
+        this.getPosition(),
       );
 
       // Draw initial point
@@ -108,7 +108,7 @@ export class Wall extends ScreenObject implements IWall {
   getLeftTopCorner(): IPoint {
     let correction_w = 0;
     let correction_h = 0;
-    if (this.orientation == "vertical") {
+    if (this.orientation === "vertical") {
       correction_w = this._width / 2;
     } else {
       correction_h = this.height / 2;

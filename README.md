@@ -31,7 +31,7 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 - **React Router**: Handles client-side routing between screens
 - **Components**:
   - `LoginScreen`: sign-in; shows the providers the server enables (`GET /auth/providers`): Google, and/or local username + password accounts (sign in / create account)
-  - `LeaderboardScreen`: Sessions list and leaderboard
+  - `LeaderboardScreen`: the lobby, with a Sessions tab and a Leaderboard tab
   - `GameScreen`: Main game canvas wrapper
   - `LegendScreen`: Game instructions and tutorial
 - **Game Engine**:
@@ -41,10 +41,13 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 
 ### Routes
 
-- `/`: Login screen
-- `/leaderboard`: Main lobby with sessions and leaderboard
+- `/`: Login screen (redirects to `/sessions` once signed in)
+- `/sessions`: Lobby, Sessions tab: join, create, or delete a game session
+- `/leaderboard`: Lobby, Leaderboard tab
 - `/legend`: Game instructions
 - `/:sessionId`: Active game session
+
+In production the app is served under `/dungerra/` on GitHub Pages. Every push to `main` builds it and publishes `dist/` to the `docs/` folder of the `gh-pages` branch.
 
 ## Controls
 

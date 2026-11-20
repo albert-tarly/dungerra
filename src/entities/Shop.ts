@@ -22,7 +22,7 @@ export class Shop extends ScreenObject implements IShop {
 
   constructor(
     private world: IWorld,
-    shopData: ShopMessage
+    shopData: ShopMessage,
   ) {
     const point = new Point2D(shopData.position!.x, shopData.position!.y);
     super(point, config.SHOP_SIZE, config.SHOP_SIZE, shopData.id);
@@ -32,11 +32,11 @@ export class Shop extends ScreenObject implements IShop {
 
     // Load player sprite
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(config.TEXTURES.SHOP).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.SHOP).then((img) => {
       this._image = img;
     });
 
-    imageManager.loadImage(config.TEXTURES.SHOP_LAYOUT).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.SHOP_LAYOUT).then((img) => {
       this._layoutImage = img;
     });
   }
@@ -50,7 +50,7 @@ export class Shop extends ScreenObject implements IShop {
     AudioManager.getInstance().playSound(config.SOUNDS.ENTER_SHOP);
   }
 
-  handlePlayerExit() {
+  handlePlayerExit(): void {
     this._isEnteredByPlayer = false;
     this._modalOpen = false;
   }
@@ -93,7 +93,7 @@ export class Shop extends ScreenObject implements IShop {
       }
 
       const distToOther = this.getPosition().distanceTo(
-        otherPlayer.getPosition()
+        otherPlayer.getPosition(),
       );
       if (distToOther <= this.world.torchRadius + this.width) {
         shouldDraw = true;
@@ -115,7 +115,7 @@ export class Shop extends ScreenObject implements IShop {
       -this.width / 2,
       -this.height / 2,
       this.width,
-      this.height
+      this.height,
     );
 
     // Set font first to measure text
@@ -136,7 +136,7 @@ export class Shop extends ScreenObject implements IShop {
     ctx.fillText(
       this._name,
       0,
-      this.height / 2 + 30 + textMetrics.actualBoundingBoxAscent + padding
+      this.height / 2 + 30 + textMetrics.actualBoundingBoxAscent + padding,
     );
 
     ctx.restore();
@@ -149,7 +149,7 @@ export class Shop extends ScreenObject implements IShop {
         -this.width / 2,
         -this.height / 2,
         this.width,
-        this.height
+        this.height,
       );
       uiCtx.restore();
     }
@@ -170,7 +170,7 @@ export class Shop extends ScreenObject implements IShop {
       uiCtx.fillText(
         "Press Enter to visit the Shop",
         viewport.width / 2,
-        viewport.height - config.MESSAGE_PADDING_BOTTOM
+        viewport.height - config.MESSAGE_PADDING_BOTTOM,
       );
       uiCtx.restore();
     } else {
@@ -189,7 +189,7 @@ export class Shop extends ScreenObject implements IShop {
         modalX,
         modalY,
         modalWidth,
-        modalHeight
+        modalHeight,
       );
 
       // Draw instructions background
@@ -201,11 +201,11 @@ export class Shop extends ScreenObject implements IShop {
         (viewport.width - bgWidth) / 2 - padding,
         viewport.height - 88 - padding,
         bgWidth + padding * 2,
-        bgHeight + padding * 2
+        bgHeight + padding * 2,
       );
 
       const purchaseKeyCount = Object.values(this._inventory).filter(
-        (item) => item.quantity > 0
+        (item) => item.quantity > 0,
       ).length;
 
       const hint =
@@ -224,13 +224,13 @@ export class Shop extends ScreenObject implements IShop {
       uiCtx.fillText(
         "🟨 - available, 🟥 - not enough money, 🟩 - already owned",
         viewport.width / 2,
-        viewport.height - 72
+        viewport.height - 72,
       );
       uiCtx.fillText(hint, viewport.width / 2, viewport.height - 50);
       uiCtx.fillText(
         "Press Escape to close the Shop.",
         viewport.width / 2,
-        viewport.height - 28
+        viewport.height - 28,
       );
 
       // Draw inventory items
@@ -267,7 +267,7 @@ export class Shop extends ScreenObject implements IShop {
         // Draw item icon
         const imageManager = ImageManager.getInstance();
         const icon = imageManager.getInventoryTexture(
-          Number(type) as config.InventoryItemID
+          Number(type) as config.InventoryItemID,
         );
         if (icon) {
           uiCtx.drawImage(
@@ -275,7 +275,7 @@ export class Shop extends ScreenObject implements IShop {
             itemX - icon.width / 2 + itemSpacingY / 2,
             itemY - icon.height / 2 + itemSpacingY / 2,
             icon.width,
-            icon.height
+            icon.height,
           );
         }
 
@@ -285,14 +285,14 @@ export class Shop extends ScreenObject implements IShop {
         const player = this.world.player;
         const itemId = Number(type) as config.InventoryItemID;
         const isWeapon = Object.values(
-          config.WEAPON_INVENTORY_ID_BY_WEAPON_TYPE
+          config.WEAPON_INVENTORY_ID_BY_WEAPON_TYPE,
         ).includes(itemId);
 
         if (player && player.money < item.price * item.packSize) {
           uiCtx.fillStyle = "#ff4d4d";
         }
 
-        if (isWeapon && player && player.hasInventoryItem(itemId)) {
+        if (isWeapon && player?.hasInventoryItem(itemId)) {
           uiCtx.fillStyle = "#4dff4d";
         }
 
@@ -309,28 +309,28 @@ export class Shop extends ScreenObject implements IShop {
         uiCtx.fillText(
           `${item.packSize}`,
           itemX + 174,
-          itemY + itemSpacingY / 2 + 5
+          itemY + itemSpacingY / 2 + 5,
         );
 
         // Draw item price
         uiCtx.fillText(
           `$${item.price * item.packSize}`,
           itemX + 328,
-          itemY + itemSpacingY / 2 + 5
+          itemY + itemSpacingY / 2 + 5,
         );
 
         // Draw item stock
         uiCtx.fillText(
           `${item.quantity}`,
           itemX + 418,
-          itemY + itemSpacingY / 2 + 5
+          itemY + itemSpacingY / 2 + 5,
         );
 
         // Draw purchase button hint
         uiCtx.fillText(
           `${(index + 1) % 10}`,
           itemX - 10,
-          itemY + itemSpacingY / 2 + 5
+          itemY + itemSpacingY / 2 + 5,
         );
 
         uiCtx.restore();

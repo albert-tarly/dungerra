@@ -1,4 +1,4 @@
-export interface LeaderboardEntry {
+export interface ILeaderboardEntry {
   id: string;
   username: string;
   score: number;

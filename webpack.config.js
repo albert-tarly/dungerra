@@ -53,6 +53,14 @@ module.exports = {
       inject: "body",
       hash: true,
     }),
+    // GitHub Pages answers unknown paths with 404.html, so deep links such as
+    // /dungerra/<sessionId> still load the app and the router takes over
+    new HtmlWebpackPlugin({
+      template: "./src/index.html",
+      filename: "404.html",
+      inject: "body",
+      hash: true,
+    }),
     new CopyWebpackPlugin({
       patterns: [{ from: "src/favicon.png", to: "favicon.png" }],
     }),

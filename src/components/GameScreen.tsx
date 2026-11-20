@@ -50,9 +50,7 @@ export const GameScreen: React.FC = () => {
     return () => {
       if (gameRef.current) {
         console.log("Stopping game and ending session...");
-        sessionManager.endSession().catch((err) => {
-          console.error("Error ending session:", err);
-        });
+        sessionManager.endSession();
         gameRef.current.stop();
         gameRef.current = null;
         initializingRef.current = false;
@@ -60,11 +58,11 @@ export const GameScreen: React.FC = () => {
 
       document.title = "Dungerra";
     };
-  }, []);
+  }, [sessionManager]);
 
   useEffect(() => {
     if (!sessionId) {
-      navigate("/sessions");
+      void navigate("/sessions");
       return;
     }
 
@@ -94,24 +92,22 @@ export const GameScreen: React.FC = () => {
           uiCanvasRef.current!,
         );
         gameRef.current = game;
-        await game.start(session);
-      } catch (err) {
+        game.start(session);
+      } catch {
         setError("Failed to join session. Redirecting...");
-        setTimeout(() => navigate("/sessions"), 2000);
+        setTimeout(() => void navigate("/sessions"), 2000);
       } finally {
         initializingRef.current = false;
       }
     };
 
-    initGame();
+    void initGame();
 
     // Cleanup on unmount
     return () => {
       if (gameRef.current) {
         console.log("Stopping game and ending session...");
-        sessionManager.endSession().catch((err) => {
-          console.error("Error ending session:", err);
-        });
+        sessionManager.endSession();
         gameRef.current.stop();
         gameRef.current = null;
         initializingRef.current = false;
@@ -119,7 +115,7 @@ export const GameScreen: React.FC = () => {
 
       document.title = "Dungerra";
     };
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, sessionManager]);
 
   if (error) {
     return (

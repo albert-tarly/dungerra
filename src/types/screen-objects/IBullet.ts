@@ -2,7 +2,6 @@ import { IScreenObject } from "./IScreenObject";
 import { IPoint } from "../geometry/IPoint";
 import { IWorld } from "../IWorld";
 import { IDrawable } from "./IDrawable";
-import { IUpdatable } from "./IUpdatable";
 import { Vector2D } from "../../utils/geometry/Vector2D";
 import { Bullet as BulletMessage } from "../socketEvents";
 import * as config from "../../config";

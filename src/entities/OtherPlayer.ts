@@ -6,12 +6,12 @@ import { IOtherPlayer } from "../types/screen-objects/IOtherPlayer";
 import { Point2D } from "../utils/geometry/Point2D";
 import { Player as PlayerMessage, PlayerUpdate } from "../types/socketEvents";
 import { ImageManager } from "../utils/ImageManager";
-import { Pose, PoseBuffer } from "../utils/PoseBuffer";
+import { IPose, PoseBuffer } from "../utils/PoseBuffer";
 
 export class OtherPlayer extends ScreenObject implements IOtherPlayer {
   private _bloodImage: HTMLImageElement | null = null;
   private _poses: PoseBuffer;
-  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
+  private _pose: IPose = { x: 0, y: 0, rotation: 0 };
 
   private _rotation: number = 0;
   private _name: string;
@@ -56,7 +56,7 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
 
     // Load blood texture
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(config.TEXTURES.BLOOD).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.BLOOD).then((img) => {
       this._bloodImage = img;
     });
   }
@@ -263,10 +263,6 @@ export class OtherPlayer extends ScreenObject implements IOtherPlayer {
         textMetrics.actualBoundingBoxAscent +
         padding,
     );
-  }
-
-  isInvulnerable(): boolean {
-    return this._invulnerableTimer > 0;
   }
 
   hasNightVision(): boolean {

@@ -3,8 +3,8 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { AuthManager } from "../api/AuthManager";
 import { LeaderboardManager } from "../api/LeaderboardManager";
 import { SessionManager } from "../api/SessionManager";
-import { LeaderboardEntry } from "../types/leaderboard";
-import { Session } from "../types/session";
+import { ILeaderboardEntry } from "../types/leaderboard";
+import { ISession } from "../types/session";
 
 function generateFunnySessionName(): string {
   const adjectives = [
@@ -88,8 +88,8 @@ export const LeaderboardScreen: React.FC = () => {
 
   const activeTab =
     location.pathname === "/leaderboard" ? "leaderboard" : "sessions";
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [sessions, setSessions] = useState<ISession[]>([]);
+  const [leaderboard, setLeaderboard] = useState<ILeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
@@ -123,14 +123,14 @@ export const LeaderboardScreen: React.FC = () => {
       }
     };
 
-    loadData();
-  }, [navigate]);
+    void loadData();
+  }, [navigate, authManager, leaderboardManager, sessionManager]);
 
   const handleJoinSession = async (sessionId: string) => {
     try {
       setError("");
-      const session = await sessionManager.joinSession(sessionId);
-      navigate(`/${sessionId}`);
+      await sessionManager.joinSession(sessionId);
+      void navigate(`/${sessionId}`);
     } catch (err) {
       console.error("Failed to join session:", err);
       setError("Failed to join session. Please try again.");
@@ -139,7 +139,7 @@ export const LeaderboardScreen: React.FC = () => {
 
   const handleDeleteSession = async (
     sessionId: string,
-    e: React.MouseEvent
+    e: React.MouseEvent,
   ) => {
     e.stopPropagation();
 
@@ -172,7 +172,7 @@ export const LeaderboardScreen: React.FC = () => {
 
     try {
       const session = await sessionManager.startSession(trimmedName);
-      navigate(`/${session.id}`);
+      void navigate(`/${session.id}`);
     } catch (err) {
       console.error("Failed to create session:", err);
       setError("There's a problem on our end. Please try again later.");
@@ -225,9 +225,9 @@ export const LeaderboardScreen: React.FC = () => {
               ) : (
                 sessions.map((session) => {
                   const playerCount = Object.values(session.players).filter(
-                    (player) => player.is_connected
+                    (player) => player.is_connected,
                   ).length;
-                  const maxPlayers = session.max_players || 4;
+                  const maxPlayers = session.max_players ?? 4;
                   const isHost = session.host.id === currentUserId;
 
                   return (
@@ -238,7 +238,7 @@ export const LeaderboardScreen: React.FC = () => {
                     >
                       <div className="session-info">
                         <span className="session-name">
-                          "{session.name}"
+                          &quot;{session.name}&quot;
                           <span className="session-host">
                             {isHost ? "You" : session.host.username}
                           </span>
@@ -308,7 +308,11 @@ export const LeaderboardScreen: React.FC = () => {
               type="text"
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleCreateSession()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                  void handleCreateSession();
+                }
+              }}
               placeholder="Enter session name..."
               maxLength={50}
               autoFocus

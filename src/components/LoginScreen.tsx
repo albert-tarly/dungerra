@@ -30,7 +30,7 @@ export const LoginScreen: React.FC = () => {
   useEffect(() => {
     // If already authenticated, redirect to sessions
     if (!isLoading && isAuthenticated) {
-      navigate("/sessions", { replace: true });
+      void navigate("/sessions", { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -39,7 +39,7 @@ export const LoginScreen: React.FC = () => {
       .getProviders()
       .then(setProviders)
       .catch(() => setError("Failed to reach the server. Please refresh."));
-  }, []);
+  }, [authManager]);
 
   const handleGoogleLogin = async () => {
     if (authManager.isPerformingRequest()) {
@@ -153,7 +153,9 @@ export const LoginScreen: React.FC = () => {
             type="password"
             name="password"
             placeholder="Password"
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            autoComplete={
+              mode === "register" ? "new-password" : "current-password"
+            }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={mode === "register" ? PASSWORD_MIN : undefined}
@@ -174,7 +176,7 @@ export const LoginScreen: React.FC = () => {
               />
               <p className="login-hint">
                 Other players will see you as{" "}
-                <strong>{(username.trim() || "name") + "@local"}</strong>.
+                <strong>{`${username.trim() || "name"}@local`}</strong>.
               </p>
             </>
           )}

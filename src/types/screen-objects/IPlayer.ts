@@ -6,20 +6,14 @@ import {
   Player as PlayerMessage,
   PlayerUpdate,
 } from "../socketEvents";
-import { IDamageable } from "./IDamageable";
 import { IDrawable } from "./IDrawable";
-import { IKillable } from "./IKillable";
 import { IScreenObject } from "./IScreenObject";
 import { IUpdatable } from "./IUpdatable";
 import { IVisor } from "./IVisor";
 
-export interface IPlayer
-  extends IScreenObject,
-    IDrawable,
-    IUpdatable,
-    IDamageable,
-    IKillable,
-    IVisor {
+export interface IPlayer extends IScreenObject, IDrawable, IUpdatable, IVisor {
+  isAlive(): boolean;
+  lives: number;
   recordKill(reward: number): void;
   drawUI(ctx: CanvasRenderingContext2D): void;
   rotation: number;

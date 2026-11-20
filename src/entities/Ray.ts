@@ -4,14 +4,14 @@ import { IRay } from "../types/screen-objects/IRay";
 import { ScreenObject } from "./ScreenObject";
 import { Ray as RayMessage, RayUpdate } from "../types/socketEvents";
 import { Point2D } from "../utils/geometry/Point2D";
-import { Pose, PoseBuffer } from "../utils/PoseBuffer";
+import { IPose, PoseBuffer } from "../utils/PoseBuffer";
 
 export class Ray extends ScreenObject implements IRay {
   private _end: Point2D;
   private _type: RayType;
   private _startPoses: PoseBuffer;
   private _endPoses: PoseBuffer;
-  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
+  private _pose: IPose = { x: 0, y: 0, rotation: 0 };
 
   get end(): Point2D {
     return this._end;
@@ -43,7 +43,7 @@ export class Ray extends ScreenObject implements IRay {
     this._end.setTo(end.x, end.y);
   }
 
-  draw(ctx: CanvasRenderingContext2D, uiCtx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, _uiCtx: CanvasRenderingContext2D): void {
     if (this._type === RAY_TYPES.LASER) {
       const start = this._world.worldToScreenCoordinates(this._point);
       const end = this._world.worldToScreenCoordinates(this._end);

@@ -43,8 +43,8 @@ export class ImageManager {
         this.images.set(imagePath, img);
         resolve();
       };
-      img.onerror = (err) => {
-        reject(err);
+      img.onerror = () => {
+        reject(new Error(`Failed to load image: ${imagePath}`));
       };
     });
 
@@ -58,32 +58,33 @@ export class ImageManager {
     return this.images.get(imagePath);
   }
 
-  loadPlayerTextures() {
-    Object.entries(config.PLAYER_TEXTURE_BY_WEAPON_TYPE).forEach(
-      ([weaponType, texturePath]) => {
-        this.loadImage(texturePath).then((img) => {
-          this.playerTextures[weaponType as config.WeaponType] = img;
-        });
-      }
+  async loadPlayerTextures(): Promise<void> {
+    await Promise.all(
+      Object.entries(config.PLAYER_TEXTURE_BY_WEAPON_TYPE).map(
+        async ([weaponType, texturePath]) => {
+          this.playerTextures[weaponType as config.WeaponType] =
+            await this.loadImage(texturePath);
+        },
+      ),
     );
   }
 
   getPlayerTexture(type: config.WeaponType): HTMLImageElement | null {
-    return this.playerTextures[type] || null;
+    return this.playerTextures[type] ?? null;
   }
 
-  loadInventoryTextures() {
-    Object.entries(config.INVENTORY_ITEM_TEXTURES).forEach(
-      ([key, texturePath]) => {
-        this.loadImage(texturePath).then((img) => {
+  async loadInventoryTextures(): Promise<void> {
+    await Promise.all(
+      Object.entries(config.INVENTORY_ITEM_TEXTURES).map(
+        async ([key, texturePath]) => {
           this.inventoryItemTextures[Number(key) as config.InventoryItemID] =
-            img;
-        });
-      }
+            await this.loadImage(texturePath);
+        },
+      ),
     );
   }
 
   getInventoryTexture(type: config.InventoryItemID): HTMLImageElement | null {
-    return this.inventoryItemTextures[type] || null;
+    return this.inventoryItemTextures[type] ?? null;
   }
 }

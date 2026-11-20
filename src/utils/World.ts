@@ -33,8 +33,8 @@ import { IScreenObject } from "../types/screen-objects/IScreenObject";
 
 // Compares two pressed-key maps without serialising them every frame
 function sameKeySet(
-  a: { [key: number]: boolean },
-  b: { [key: number]: boolean },
+  a: Record<number, boolean>,
+  b: Record<number, boolean>,
 ): boolean {
   const aKeys = Object.keys(a);
   if (aKeys.length !== Object.keys(b).length) {
@@ -72,7 +72,7 @@ export class World implements IWorld {
 
   private floorTexture: HTMLImageElement | null = null;
 
-  private chunks: Map<string, IChunk> = new Map();
+  private chunks = new Map<string, IChunk>();
   private _cameraPoint: IPoint = new Point2D(0, 0);
   private _torchRadius: number = config.TORCH_RADIUS;
   private _debug = false;
@@ -80,7 +80,7 @@ export class World implements IWorld {
   private _sessionManager = SessionManager.getInstance();
   private _bulletManager: IBulletManager;
   private _lastChangesetTimestamp: number = 0;
-  private _bonusPickupCache: Set<string> = new Set();
+  private _bonusPickupCache = new Set<string>();
 
   private _previousInputState: InputMessage = {
     forward: false,
@@ -220,14 +220,14 @@ export class World implements IWorld {
   ) {
     // Load sounds
     const audioManager = AudioManager.getInstance();
-    audioManager.loadSound(config.SOUNDS.TORCH).then(() => {
+    void audioManager.loadSound(config.SOUNDS.TORCH).then(() => {
       // Start playing torch sound in a loop
       audioManager.playSound(config.SOUNDS.TORCH, { volume: 1, loop: true });
     });
 
     // Load floor texture
     const imageManager = ImageManager.getInstance();
-    imageManager.loadImage(config.TEXTURES.FLOOR).then((img) => {
+    void imageManager.loadImage(config.TEXTURES.FLOOR).then((img) => {
       this.floorTexture = img;
     });
 
@@ -235,7 +235,6 @@ export class World implements IWorld {
   }
 
   addOtherPlayer(player: PlayerMessage): void {
-    const point = new Point2D(player.position!.x, player.position!.y);
     const otherPlayer = new this._OtherPlayer(this, player);
 
     this._otherPlayers[player.id] = otherPlayer;
@@ -644,7 +643,7 @@ export class World implements IWorld {
   }
 
   private drawDarknessOverlay(ctx: CanvasRenderingContext2D): void {
-    if (!this._player || !this._player.isAlive()) {
+    if (!this._player?.isAlive()) {
       ctx.fillStyle = config.COLOR_DARK;
       ctx.fillRect(0, 0, viewport.width, viewport.height);
       return;
@@ -723,7 +722,7 @@ export class World implements IWorld {
     return (degrees + 360) % 360;
   }
 
-  handleInput(keys: Set<string>, dt: number): void {
+  handleInput(keys: Set<string>, _dt: number): void {
     if (!this._player) {
       return;
     }
@@ -735,8 +734,8 @@ export class World implements IWorld {
     const shoot = keys.has("Space") || keys.has(config.MOUSE_SHOOT_KEY);
     const now = Date.now();
 
-    const itemKey: { [key: number]: boolean } = {};
-    const purchaseItemKey: { [key: number]: boolean } = {};
+    const itemKey: Record<number, boolean> = {};
+    const purchaseItemKey: Record<number, boolean> = {};
     for (let i = 0; i <= 9; i++) {
       if (keys.has(`Digit${i}`)) {
         const playerShop = this.shops.find(
@@ -745,14 +744,16 @@ export class World implements IWorld {
 
         if (playerShop) {
           const inventory = playerShop.inventory;
-          const key =
-            Number(
-              Object.keys(inventory).filter(
-                (key) => inventory[Number(key)].quantity > 0,
-              )[i == 0 ? 9 : i - 1],
-            ) ?? null;
+          // Digits 1..9 then 0 pick the 1st..10th item in stock
+          const itemId = Object.keys(inventory).filter(
+            (key) => inventory[Number(key)].quantity > 0,
+          )[i === 0 ? 9 : i - 1];
 
-          purchaseItemKey[key] = true;
+          // A digit past the last item in stock buys nothing (this used to
+          // send a NaN purchase key)
+          if (itemId !== undefined) {
+            purchaseItemKey[Number(itemId)] = true;
+          }
         } else {
           itemKey[i] = true;
         }
@@ -821,7 +822,7 @@ export class World implements IWorld {
       (shop) => shop.hasPlayer() && shop.isModalOpen,
     );
 
-    if (playerShop && playerShop.inventory[itemId]) {
+    if (playerShop?.inventory[itemId]) {
       const item = playerShop.inventory[itemId];
       const totalPrice = item.price * item.packSize;
 

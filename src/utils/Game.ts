@@ -8,7 +8,7 @@ import { World } from "./World";
 import { SessionManager } from "../api/SessionManager";
 import { AuthManager } from "../api/AuthManager";
 import { Shop } from "../entities/Shop";
-import { Session } from "../types/session";
+import { ISession } from "../types/session";
 import { OtherPlayer } from "../entities/OtherPlayer";
 import { BulletManager } from "./BulletManager";
 import { ImageManager } from "./ImageManager";
@@ -21,7 +21,7 @@ export class Game {
   private _uiCtx: CanvasRenderingContext2D;
   private _lastTime: number = 0;
   private _world: World | null = null;
-  private _activeKeys: Set<string> = new Set();
+  private _activeKeys = new Set<string>();
   private _authManager: AuthManager;
   private _sessionManager: SessionManager;
   private _started: boolean = false;
@@ -147,26 +147,32 @@ export class Game {
       audioManager.loadSound(config.SOUNDS.TORCH),
     ]);
 
-    // Load non-critical resources asynchronously
-    audioManager.loadSound(config.SOUNDS.PLAYER_BULLET_RECHARGE);
-    audioManager.loadSound(config.SOUNDS.BONUS_PICKUP);
-    audioManager.loadSound(config.SOUNDS.GAME_OVER);
-    audioManager.loadSound(config.SOUNDS.BULLET);
-    audioManager.loadSound(config.SOUNDS.SHOTGUN);
-    audioManager.loadSound(config.SOUNDS.RAILGUN);
-    audioManager.loadSound(config.SOUNDS.ROCKET_LAUNCHER);
-    audioManager.loadSound(config.SOUNDS.ROCKET_BLAST);
-    audioManager.loadSound(config.SOUNDS.SPAWN);
-    audioManager.loadSound(config.SOUNDS.ENTER_SHOP);
-    audioManager.loadSound(config.SOUNDS.MONEY_SPENT);
-    audioManager.loadSound(config.SOUNDS.MISTAKE);
-    audioManager.loadSound(config.SOUNDS.TOWER_CRASH);
-    imageManager.loadImage(config.TEXTURES.BLOOD);
-    imageManager.loadImage(config.TEXTURES.AID_KIT);
-    imageManager.loadImage(config.TEXTURES.GOGGLES);
-    imageManager.loadImage(config.TEXTURES.CHEST);
-    imageManager.loadImage(config.TEXTURES.SHOP);
-    imageManager.loadInventoryTextures();
+    // Load non-critical resources in the background
+    const backgroundSounds = [
+      config.SOUNDS.PLAYER_BULLET_RECHARGE,
+      config.SOUNDS.BONUS_PICKUP,
+      config.SOUNDS.GAME_OVER,
+      config.SOUNDS.BULLET,
+      config.SOUNDS.SHOTGUN,
+      config.SOUNDS.RAILGUN,
+      config.SOUNDS.ROCKET_LAUNCHER,
+      config.SOUNDS.ROCKET_BLAST,
+      config.SOUNDS.SPAWN,
+      config.SOUNDS.ENTER_SHOP,
+      config.SOUNDS.MONEY_SPENT,
+      config.SOUNDS.MISTAKE,
+      config.SOUNDS.TOWER_CRASH,
+    ];
+    const backgroundImages = [
+      config.TEXTURES.BLOOD,
+      config.TEXTURES.AID_KIT,
+      config.TEXTURES.GOGGLES,
+      config.TEXTURES.CHEST,
+      config.TEXTURES.SHOP,
+    ];
+    backgroundSounds.forEach((sound) => void audioManager.loadSound(sound));
+    backgroundImages.forEach((image) => void imageManager.loadImage(image));
+    void imageManager.loadInventoryTextures();
   }
 
   private setupEventListeners(): void {
@@ -247,13 +253,11 @@ export class Game {
     this._activeKeys.add(config.MOUSE_SHOOT_KEY);
   }
 
-  public async start(session: Session): Promise<void> {
+  public start(session: ISession): void {
     if (session) {
       const userData = this._authManager.getUserData();
       const multiplayerMode =
-        session.host && userData && session.host.id === userData.id
-          ? "host"
-          : "guest";
+        session.host.id === userData?.id ? "host" : "guest";
       this._world = new World(
         Player,
         Enemy,

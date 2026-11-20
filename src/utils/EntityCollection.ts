@@ -26,9 +26,7 @@ export class EntityCollection<T extends { id: string }> {
   }
 
   get list(): T[] {
-    if (!this._list) {
-      this._list = Array.from(this._items.values());
-    }
+    this._list ??= Array.from(this._items.values());
     return this._list;
   }
 }

@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+# Deploys run one at a time, in push order
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,26 +18,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Configure Git
+      - name: Install
+        run: npm ci
+
+      - name: Check
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      # GitHub Pages serves the docs/ folder of the gh-pages branch. Replace
+      # that folder with the fresh build; main is never merged into gh-pages.
+      - name: Publish to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Deploy to gh-pages
-        run: |
-          git checkout gh-pages || git checkout --orphan gh-pages
-          git merge main --no-edit
-          npm ci
-          npm run build
-          git add -f docs/*
-          git commit -m "Deploy to GitHub Pages" || echo "No changes to commit"
-          git push origin gh-pages
+          git fetch --depth=1 origin gh-pages
+          git worktree add --detach "$RUNNER_TEMP/pages" FETCH_HEAD
+          rm -rf "$RUNNER_TEMP/pages/docs"
+          cp -r dist "$RUNNER_TEMP/pages/docs"
+          cd "$RUNNER_TEMP/pages"
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "Build unchanged; nothing to deploy"
+            exit 0
+          fi
+          git commit -m "Deploy ${GITHUB_SHA}"
+          git push origin HEAD:gh-pages

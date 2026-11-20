@@ -8,7 +8,7 @@ import { Point2D } from "../utils/geometry/Point2D";
 import { AudioManager } from "../utils/AudioManager";
 import { Enemy as EnemyMessage, EnemyUpdate } from "../types/socketEvents";
 import { ImageManager } from "../utils/ImageManager";
-import { Pose, PoseBuffer } from "../utils/PoseBuffer";
+import { IPose, PoseBuffer } from "../utils/PoseBuffer";
 
 // Texture offsets relative to the enemy centre, computed once instead of per frame
 const SOLDIER_TEXTURE_OFFSET = config.ENEMY_SOLDIER_TEXTURE_CENTER.inverted();
@@ -20,7 +20,7 @@ const BLOOD_TEXTURE_OFFSET = new Point2D(
 
 export class Enemy extends ScreenObject implements IEnemy {
   private _poses: PoseBuffer;
-  private _pose: Pose = { x: 0, y: 0, rotation: 0 };
+  private _pose: IPose = { x: 0, y: 0, rotation: 0 };
   private _enemyTowerBg: HTMLImageElement | null = null;
   private _image: HTMLImageElement | null = null;
   private deadImage: HTMLImageElement | null = null;
@@ -60,18 +60,20 @@ export class Enemy extends ScreenObject implements IEnemy {
 
     const imageManager = ImageManager.getInstance();
     // Load enemy sprite
-    imageManager
+    void imageManager
       .loadImage(config.ENEMY_TEXTURE_BY_TYPE[this._type])
       .then((img) => {
         this._image = img;
       });
 
-    imageManager.loadImage(config.TEXTURES.ENEMY_TOWER_BACK).then((img) => {
-      this._enemyTowerBg = img;
-    });
+    void imageManager
+      .loadImage(config.TEXTURES.ENEMY_TOWER_BACK)
+      .then((img) => {
+        this._enemyTowerBg = img;
+      });
 
     // Load blood texture
-    imageManager
+    void imageManager
       .loadImage(config.ENEMY_DEAD_TEXTURE_BY_TYPE[this._type])
       .then((img) => {
         this.deadImage = img;
@@ -218,10 +220,6 @@ export class Enemy extends ScreenObject implements IEnemy {
 
   isAlive(): boolean {
     return !this.dead;
-  }
-
-  isInvulnerable(): boolean {
-    return false;
   }
 
   update(_dt: number): void {

@@ -1,4 +1,4 @@
-import { Session, CreateSessionRequest } from "../types/session";
+import { ISession, ICreateSessionRequest } from "../types/session";
 import { HttpClient } from "./HttpClient";
 import { SocketService } from "./SocketService";
 import {
@@ -12,7 +12,7 @@ import {
 
 export class SessionManager {
   private static instance: SessionManager;
-  private currentSession: Session | null = null;
+  private currentSession: ISession | null = null;
   private socketService: SocketService;
 
   private constructor() {
@@ -26,23 +26,22 @@ export class SessionManager {
     return SessionManager.instance;
   }
 
-  public async listSessions(): Promise<Session[]> {
-    return await HttpClient.get<Session[]>("/sessions");
+  public async listSessions(): Promise<ISession[]> {
+    return await HttpClient.get<ISession[]>("/sessions");
   }
 
-  public async startSession(sessionName: string): Promise<Session> {
-    const session = await HttpClient.post<Session>("/sessions", {
-      name: sessionName,
-    } as CreateSessionRequest);
+  public async startSession(sessionName: string): Promise<ISession> {
+    const request: ICreateSessionRequest = { name: sessionName };
+    const session = await HttpClient.post<ISession>("/sessions", request);
 
     this.currentSession = session;
     this.socketService.connect(session.id);
     return session;
   }
 
-  public async joinSession(sessionId: string): Promise<Session> {
-    const session = await HttpClient.post<Session>(
-      `/sessions/${sessionId}/join`
+  public async joinSession(sessionId: string): Promise<ISession> {
+    const session = await HttpClient.post<ISession>(
+      `/sessions/${sessionId}/join`,
     );
     this.currentSession = session;
     this.socketService.connect(session.id);
@@ -57,14 +56,14 @@ export class SessionManager {
     }
   }
 
-  public async endSession(): Promise<void> {
+  public endSession(): void {
     if (this.currentSession) {
       this.socketService.disconnect();
       this.currentSession = null;
     }
   }
 
-  public getCurrentSession(): Session | null {
+  public getCurrentSession(): ISession | null {
     return this.currentSession;
   }
 
@@ -94,7 +93,7 @@ export class SessionManager {
   }
 
   public onGameStateDelta(
-    callback: (changeset: GameStateDeltaMessage) => void
+    callback: (changeset: GameStateDeltaMessage) => void,
   ): void {
     this.socketService.onGameStateDelta(callback);
   }
