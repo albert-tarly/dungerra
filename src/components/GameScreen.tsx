@@ -9,6 +9,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Game } from "../utils/Game";
 import { SessionManager } from "../api/SessionManager";
 import { AudioManager } from "../utils/AudioManager";
+import { goToLauncher, LAUNCHER_URL } from "../utils/launcher";
 
 export const GameScreen: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -202,6 +203,13 @@ export const GameScreen: React.FC = () => {
                 Resume
               </button>
             </div>
+            {LAUNCHER_URL && (
+              <div className="modal-buttons game-menu-extra">
+                <button className="button-secondary" onClick={goToLauncher}>
+                  Main Menu
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

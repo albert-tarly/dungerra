@@ -11,11 +11,13 @@ import { LoginScreen } from "./components/LoginScreen";
 import { LeaderboardScreen } from "./components/LeaderboardScreen";
 import GameScreen from "./components/GameScreen";
 import { LegendScreen } from "./components/LegendScreen";
+import { MainMenuButton } from "./components/MainMenuButton";
 import { ROUTER_BASENAME } from "./config";
 
 export const App: React.FC = () => {
   return (
     <Router basename={ROUTER_BASENAME}>
+      <MainMenuButton />
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LoginScreen />} />

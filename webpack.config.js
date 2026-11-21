@@ -47,6 +47,14 @@ module.exports = {
           filename: "assets/[hash][ext][query]",
         },
       },
+      // Fonts referenced from src/assets/fonts/fonts.css
+      {
+        test: /\.woff2$/i,
+        type: "asset/resource",
+        generator: {
+          filename: "assets/[hash][ext][query]",
+        },
+      },
     ],
   },
   resolve: {
