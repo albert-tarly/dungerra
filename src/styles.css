@@ -621,6 +621,24 @@ button:active {
   color: #aaa;
 }
 
+.lan-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modal-content .lan-checkbox input {
+  width: auto;
+  margin: 0;
+  accent-color: #ff9900;
+}
+
+.lan-join-status {
+  margin: 12px 0 0;
+}
+
 .lan-badge {
   position: fixed;
   top: 12px;

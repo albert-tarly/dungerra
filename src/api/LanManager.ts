@@ -11,6 +11,17 @@ export interface ILanStatus {
   session_name?: string;
   port?: number;
   addresses?: string[]; // host:port others join at
+  /** Guests must sign in with Google. */
+  google_only?: boolean;
+  /** "Google sign-in only" can be chosen when opening (own server only). */
+  google_available?: boolean;
+}
+
+/** What a joining player needs before signing in on a host. */
+export interface ILanChallenge {
+  google_only: boolean;
+  /** For a Google-only game: the nonce the Google sign-in must carry. */
+  nonce?: string;
 }
 
 export const DEFAULT_LAN_PORT = 8080;
@@ -30,8 +41,27 @@ export class LanManager {
     }
   }
 
-  static async open(sessionId: string, port: number): Promise<ILanStatus> {
-    return HttpClient.post<ILanStatus>("/lan", { session_id: sessionId, port });
+  static async open(
+    sessionId: string,
+    port: number,
+    googleOnly: boolean,
+  ): Promise<ILanStatus> {
+    return HttpClient.post<ILanStatus>("/lan", {
+      session_id: sessionId,
+      port,
+      google_only: googleOnly,
+    });
+  }
+
+  /** Asks a host (origin from probe()) how to sign in there. */
+  static async challenge(hostOrigin: string): Promise<ILanChallenge> {
+    const response = await fetch(`${hostOrigin}/api/v1/lan/challenge`, {
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error("The host's game is no longer open.");
+    }
+    return (await response.json()) as ILanChallenge;
   }
 
   static async close(): Promise<ILanStatus> {

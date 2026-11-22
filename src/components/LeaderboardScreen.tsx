@@ -374,7 +374,10 @@ export const LeaderboardScreen: React.FC = () => {
         <div className="button-container">
           {isLanGuest ? (
             <p className="lan-guest-note">
-              You are a guest in a LAN game. Choose the game above to play.
+              {lan.google_only &&
+              authManager.getUserData()?.provider !== "google"
+                ? "This game accepts Google sign-in only. Log out, then join it from your own Dungerra app and sign in with Google."
+                : "You are a guest in a LAN game. Choose the game above to play."}
             </p>
           ) : (
             <div className="session-actions">

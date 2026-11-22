@@ -32,6 +32,7 @@ export const OpenToLanPanel: React.FC<IOpenToLanPanelProps> = ({
   onChange,
 }) => {
   const [port, setPort] = useState(loadPort);
+  const [googleOnly, setGoogleOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const isOpen = lan.open && lan.session_id === sessionId;
@@ -52,7 +53,11 @@ export const OpenToLanPanel: React.FC<IOpenToLanPanelProps> = ({
     e.preventDefault();
     const value = Number(port);
     void run(async () => {
-      const status = await LanManager.open(sessionId, value);
+      const status = await LanManager.open(
+        sessionId,
+        value,
+        googleOnly && lan.google_available === true,
+      );
       savePort(value);
       return status;
     });
@@ -71,8 +76,10 @@ export const OpenToLanPanel: React.FC<IOpenToLanPanelProps> = ({
           ))}
         </ul>
         <p className="lan-hint">
-          They choose Join LAN Game in their game list, or open the address in a
-          web browser. Leaving this game closes it and disconnects them.
+          {lan.google_only
+            ? "Google sign-in only: they choose Join LAN Game in their Dungerra app and sign in with Google."
+            : "They choose Join LAN Game in their game list, or open the address in a web browser."}{" "}
+          Leaving this game closes it and disconnects them.
         </p>
         <div className="modal-buttons">
           <button
@@ -107,6 +114,16 @@ export const OpenToLanPanel: React.FC<IOpenToLanPanelProps> = ({
           Open to LAN
         </button>
       </div>
+      {lan.google_available && (
+        <label className="lan-checkbox">
+          <input
+            type="checkbox"
+            checked={googleOnly}
+            onChange={(e) => setGoogleOnly(e.target.checked)}
+          />
+          Google sign-in only (players need the app and a Google account)
+        </label>
+      )}
       {error && <p className="error">{error}</p>}
     </form>
   );

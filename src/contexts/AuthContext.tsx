@@ -26,6 +26,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const checkAuth = useCallback(async (): Promise<void> => {
     try {
+      // A sign-in the page arrived with replaces any stored one
+      await authManager.completePendingSignIn();
       authManager.initToken();
       await authManager.checkAuthStatus();
       setIsAuthenticated(true);
