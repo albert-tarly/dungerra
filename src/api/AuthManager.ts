@@ -4,7 +4,7 @@ import { IAuthProviders, ITokenResponse, IUserData } from "../types/auth";
 const TOKEN_STORAGE_KEY = "token";
 
 /** Used when the server predates /auth/providers (Google-only servers). */
-const LEGACY_PROVIDERS: IAuthProviders = { google: true, local: false };
+const LEGACY_PROVIDERS: IAuthProviders = { google: true, name: false };
 
 export class AuthManager {
   private static instance: AuthManager;
@@ -17,8 +17,7 @@ export class AuthManager {
     login: "/auth/google/url",
     user: "/auth/user",
     providers: "/auth/providers",
-    localLogin: "/auth/local/login",
-    localRegister: "/auth/local/register",
+    nameSignIn: "/auth/name",
   };
 
   private constructor() {}
@@ -85,40 +84,22 @@ export class AuthManager {
     return (await response.json()) as IAuthProviders;
   }
 
-  /** Signs in with a local account. Throws an Error with a user-facing message on failure. */
-  async loginLocal(username: string, password: string): Promise<IUserData> {
-    return this.submitLocalCredentials(
-      this.urls.localLogin,
-      username,
-      password,
-    );
-  }
-
-  /** Creates a local account and signs in. Throws an Error with a user-facing message on failure. */
-  async registerLocal(username: string, password: string): Promise<IUserData> {
-    return this.submitLocalCredentials(
-      this.urls.localRegister,
-      username,
-      password,
-    );
-  }
-
-  private async submitLocalCredentials(
-    url: string,
-    username: string,
-    password: string,
-  ): Promise<IUserData> {
+  /**
+   * Signs in with just a name, creating its account the first time. Throws an
+   * Error with a user-facing message on failure (e.g. the name is in play).
+   */
+  async signInWithName(name: string): Promise<IUserData> {
     this.performingRequest = true;
     try {
-      const response = await fetch(API_BASE_URL + url, {
+      const response = await fetch(API_BASE_URL + this.urls.nameSignIn, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ name }),
       });
 
       if (!response.ok) {
         // The server returns short, user-facing plain-text messages
-        // (validation rules, "username is already taken", ...).
+        // (validation rules, "<name> is playing right now", ...).
         const message = (await response.text()).trim();
         throw new Error(
           message ? capitalize(message) : `Request failed (${response.status})`,

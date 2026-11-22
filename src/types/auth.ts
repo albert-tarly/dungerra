@@ -9,7 +9,7 @@ export interface IUserData {
   id: string;
   provider: AuthProvider;
   username: string;
-  /** Name shown to other players; local accounts carry an "@local" suffix. */
+  /** Name shown to other players; name accounts carry an "@local" suffix. */
   display_name: string;
   email?: string;
   is_active: boolean;
@@ -23,10 +23,11 @@ export interface IAuthResponse {
 /** Sign-in options enabled on the server (GET /auth/providers). */
 export interface IAuthProviders {
   google: boolean;
-  local: boolean;
+  /** Sign in with just a name (desktop app and LAN play). */
+  name: boolean;
 }
 
-/** Response of local register/login. */
+/** Response of name sign-in. */
 export interface ITokenResponse {
   token: string;
   user: IUserData;

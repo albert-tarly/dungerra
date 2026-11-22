@@ -14,6 +14,8 @@ import {
 } from "../types/session";
 import { formatDifficulty } from "../utils/difficulty";
 import { DifficultyPicker } from "./DifficultyPicker";
+import { JoinLanModal } from "./JoinLanModal";
+import { useLanStatus } from "../utils/useLanStatus";
 
 function generateFunnySessionName(): string {
   const adjectives = [
@@ -113,6 +115,12 @@ export const LeaderboardScreen: React.FC = () => {
   );
   const canCreateSession =
     sessionName.trim() !== "" && difficultyPreset !== null;
+  // Desktop app: join other players' games from the own server; as a guest
+  // on a LAN host, only the game the host opened is listed and playable
+  const { lan } = useLanStatus();
+  const isLanGuest = lan?.role === "guest";
+  const canJoinLan = lan?.role === "local";
+  const [showJoinLan, setShowJoinLan] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -276,13 +284,21 @@ export const LeaderboardScreen: React.FC = () => {
             <ul className="sessions-list">
               {sessions.length === 0 ? (
                 <li className="sessions-empty">
-                  {isLoading ? "Loading sessions..." : "No active sessions"}
+                  {isLoading
+                    ? "Loading sessions..."
+                    : isLanGuest
+                      ? "The host's game is not open right now"
+                      : "No active sessions"}
                 </li>
               ) : (
                 sessions.map((session) => {
-                  const playerCount = Object.values(session.players).filter(
-                    (player) => player.is_connected,
-                  ).length;
+                  // The server's live count; older servers only have the
+                  // last saved world, which can be minutes out of date
+                  const playerCount =
+                    session.player_count ??
+                    Object.values(session.players).filter(
+                      (player) => player.is_connected,
+                    ).length;
                   const maxPlayers = session.max_players ?? 4;
                   const isHost = session.host.id === currentUserId;
 
@@ -308,18 +324,20 @@ export const LeaderboardScreen: React.FC = () => {
                           {playerCount}/{maxPlayers}
                         </span>
                       </div>
-                      <button
-                        className="session-delete"
-                        disabled={!isHost}
-                        title={
-                          !isHost
-                            ? "You must be the host to delete this session"
-                            : ""
-                        }
-                        onClick={(e) => handleDeleteSession(session.id, e)}
-                      >
-                        🗑️
-                      </button>
+                      {!isLanGuest && (
+                        <button
+                          className="session-delete"
+                          disabled={!isHost}
+                          title={
+                            !isHost
+                              ? "You must be the host to delete this session"
+                              : ""
+                          }
+                          onClick={(e) => handleDeleteSession(session.id, e)}
+                        >
+                          🗑️
+                        </button>
+                      )}
                     </li>
                   );
                 })
@@ -354,12 +372,30 @@ export const LeaderboardScreen: React.FC = () => {
         )}
 
         <div className="button-container">
-          <button id="startGameButton" onClick={handleStartGame}>
-            New Game
-          </button>
+          {isLanGuest ? (
+            <p className="lan-guest-note">
+              You are a guest in a LAN game. Choose the game above to play.
+            </p>
+          ) : (
+            <div className="session-actions">
+              <button id="startGameButton" onClick={handleStartGame}>
+                New Game
+              </button>
+              {canJoinLan && (
+                <button
+                  className="button-secondary"
+                  onClick={() => setShowJoinLan(true)}
+                >
+                  Join LAN Game
+                </button>
+              )}
+            </div>
+          )}
           {error && <p className="error">{error}</p>}
         </div>
       </div>
+
+      {showJoinLan && <JoinLanModal onCancel={() => setShowJoinLan(false)} />}
 
       {showModal && (
         <div className="modal show">

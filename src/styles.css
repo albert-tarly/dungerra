@@ -538,7 +538,7 @@ button:active {
   margin-top: 10px;
 }
 
-/* Desktop app only: back to the launcher (Solo / Host / Join) */
+/* Desktop app, as a LAN guest: back to the player's own games */
 .main-menu-button {
   position: fixed;
   top: 16px;
@@ -552,6 +552,87 @@ button:active {
 
 .main-menu-button:hover {
   background-color: rgba(255, 153, 0, 0.3);
+}
+
+/* Desktop app: Open to LAN (game menu) and Join LAN Game (game list) */
+.session-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.lan-guest-note {
+  color: #ffaa33;
+}
+
+.lan-panel {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 153, 0, 0.3);
+}
+
+.lan-panel .error {
+  margin: 0;
+}
+
+.lan-open-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.lan-open-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #ffaa33;
+}
+
+/* Same height as the button next to it */
+.modal-content .lan-open-row input {
+  width: 110px;
+  height: 42px;
+  margin-bottom: 0;
+  padding: 0 12px;
+}
+
+.lan-open-row button {
+  flex: 1;
+}
+
+.lan-addresses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lan-addresses li {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff9900;
+  user-select: all;
+}
+
+.lan-hint {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.lan-badge {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 4px 12px;
+  font-size: 14px;
+  color: #fff;
+  background: rgba(255, 153, 0, 0.25);
+  border-radius: 1000px;
+  pointer-events: none;
 }
 
 .modal-buttons button:disabled {

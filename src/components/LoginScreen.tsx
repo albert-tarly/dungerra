@@ -3,16 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { AuthManager } from "../api/AuthManager";
 import { useAuth } from "../contexts/AuthContext";
 import { IAuthProviders } from "../types/auth";
-
-type LocalMode = "login" | "register";
+import { SUGGESTED_NAME } from "../utils/home";
 
 // Mirrors the server rules so obvious mistakes are caught before a round-trip;
 // the server remains the source of truth and returns its own messages.
-const USERNAME_MIN = 3;
-const USERNAME_MAX = 24;
-const USERNAME_PATTERN = "[A-Za-z0-9_.\\-]+";
-const PASSWORD_MIN = 8;
-const PASSWORD_MAX = 72;
+const NAME_MIN = 3;
+const NAME_MAX = 24;
+const NAME_PATTERN = "[A-Za-z0-9_.\\-]+";
 
 export const LoginScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -21,10 +18,8 @@ export const LoginScreen: React.FC = () => {
   const [error, setError] = useState("");
   const [providers, setProviders] = useState<IAuthProviders | null>(null);
 
-  const [mode, setMode] = useState<LocalMode>("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
+  // A player joining from the desktop app arrives with their own name
+  const [name, setName] = useState(SUGGESTED_NAME ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,38 +51,23 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleLocalSubmit = async (event: FormEvent) => {
+  const handleNameSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (isSubmitting) {
-      return;
-    }
-    if (mode === "register" && password !== passwordConfirm) {
-      setError("Passwords do not match.");
       return;
     }
 
     setError("");
     setIsSubmitting(true);
     try {
-      const name = username.trim();
-      if (mode === "register") {
-        await authManager.registerLocal(name, password);
-      } else {
-        await authManager.loginLocal(name, password);
-      }
+      await authManager.signInWithName(name.trim());
       // Token is stored; let the auth context pick it up (redirects on success).
       await checkAuth();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setError(err instanceof Error ? err.message : "Sign-in failed.");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const switchMode = (next: LocalMode) => {
-    setMode(next);
-    setError("");
-    setPasswordConfirm("");
   };
 
   if (isLoading || (!providers && !error)) {
@@ -113,76 +93,34 @@ export const LoginScreen: React.FC = () => {
         </div>
       )}
 
-      {providers?.google && providers.local && (
+      {providers?.google && providers.name && (
         <p className="login-divider">or</p>
       )}
 
-      {providers?.local && (
-        <form className="login-form" onSubmit={handleLocalSubmit}>
-          <div className="tabs">
-            <button
-              type="button"
-              className={`tab-button ${mode === "login" ? "active" : ""}`}
-              onClick={() => switchMode("login")}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              className={`tab-button ${mode === "register" ? "active" : ""}`}
-              onClick={() => switchMode("register")}
-            >
-              Create account
-            </button>
-          </div>
-
+      {providers?.name && (
+        <form className="login-form" onSubmit={handleNameSubmit}>
           <input
             type="text"
-            name="username"
-            placeholder="Username"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            minLength={USERNAME_MIN}
-            maxLength={USERNAME_MAX}
-            pattern={USERNAME_PATTERN}
-            title={`${USERNAME_MIN}-${USERNAME_MAX} letters, digits, "_", "-" or "."`}
+            name="name"
+            placeholder="Your name"
+            aria-label="Your name"
+            autoComplete="nickname"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            minLength={NAME_MIN}
+            maxLength={NAME_MAX}
+            pattern={NAME_PATTERN}
+            title={`${NAME_MIN}-${NAME_MAX} letters, digits, "_", "-" or "."`}
             required
+            autoFocus
           />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            autoComplete={
-              mode === "register" ? "new-password" : "current-password"
-            }
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={mode === "register" ? PASSWORD_MIN : undefined}
-            maxLength={PASSWORD_MAX}
-            required
-          />
-          {mode === "register" && (
-            <>
-              <input
-                type="password"
-                name="password-confirm"
-                placeholder="Repeat password"
-                autoComplete="new-password"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                maxLength={PASSWORD_MAX}
-                required
-              />
-              <p className="login-hint">
-                Other players will see you as{" "}
-                <strong>{`${username.trim() || "name"}@local`}</strong>.
-              </p>
-            </>
-          )}
-
+          <p className="login-hint">
+            Other players see you as{" "}
+            <strong>{`${name.trim() || "name"}@local`}</strong>. Use the same
+            name to continue your character.
+          </p>
           <button type="submit" disabled={isSubmitting}>
-            {mode === "register" ? "Create account" : "Sign in"}
+            Play
           </button>
         </form>
       )}

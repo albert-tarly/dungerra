@@ -120,4 +120,8 @@ export class SessionManager {
   public onPlayerLeft(callback: (message: PlayerLeaveMessage) => void): void {
     this.socketService.onPlayerLeft(callback);
   }
+
+  public onClosedByHost(callback: () => void): void {
+    this.socketService.onClosedByHost(callback);
+  }
 }

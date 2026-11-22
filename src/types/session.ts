@@ -25,6 +25,8 @@ export interface ISession {
   money: number;
   world_map: Record<string, ISessionChunk>;
   players: Record<string, ISessionPlayer>;
+  // Players connected right now (servers before it existed: count is_connected)
+  player_count?: number;
   max_players?: number;
   is_private?: boolean;
   host: {

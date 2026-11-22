@@ -9,7 +9,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Game } from "../utils/Game";
 import { SessionManager } from "../api/SessionManager";
 import { AudioManager } from "../utils/AudioManager";
-import { goToLauncher, LAUNCHER_URL } from "../utils/launcher";
+import { goHome, HOME_URL } from "../utils/home";
+import { useLanStatus } from "../utils/useLanStatus";
+import { OpenToLanPanel } from "./OpenToLanPanel";
+
+// While open to LAN, re-read the status this often: hosting ends on its own
+// if the host's connection drops
+const LAN_STATUS_REFRESH_MS = 5000;
 
 export const GameScreen: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -29,6 +35,19 @@ export const GameScreen: React.FC = () => {
   const [volume, setVolume] = useState(audioManager.getMasterVolume());
   // Mirrors Game's menu flag (Escape); changes only on open and close
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop app: "Open to LAN" on the player's own server, or the LAN host
+  // closing the game for a guest
+  const { lan, setLan, refresh: refreshLan } = useLanStatus();
+  const [closedByHost, setClosedByHost] = useState(false);
+  const isOpenToLan = lan?.open === true && lan.session_id === sessionId;
+
+  useEffect(() => {
+    if (!isOpenToLan || lan?.role !== "local") {
+      return;
+    }
+    const timer = setInterval(() => void refreshLan(), LAN_STATUS_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [isOpenToLan, lan?.role, refreshLan]);
 
   const handleResume = useCallback(() => {
     gameRef.current?.setMenuOpen(false);
@@ -105,6 +124,10 @@ export const GameScreen: React.FC = () => {
         );
         gameRef.current = game;
         game.onMenuToggle = setMenuOpen;
+        sessionManager.onClosedByHost(() => {
+          game.setMenuOpen(false);
+          setClosedByHost(true);
+        });
         game.start(session);
       } catch {
         setError("Failed to join session. Redirecting...");
@@ -183,7 +206,36 @@ export const GameScreen: React.FC = () => {
           }
         />
       </div>
-      {menuOpen && (
+      {isOpenToLan && lan?.role === "local" && (
+        <div className="lan-badge" aria-live="polite">
+          Open to LAN · {lan.addresses?.[0] ?? `port ${lan.port}`}
+        </div>
+      )}
+      {closedByHost && (
+        <div
+          className="modal show"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="host-closed-title"
+        >
+          <div className="modal-content">
+            <h2 id="host-closed-title">Game Closed</h2>
+            <p className="game-menu-note">
+              {HOME_URL
+                ? "The host closed the game."
+                : "The host closed the game. You can close this page."}
+            </p>
+            {HOME_URL && (
+              <div className="modal-buttons">
+                <button onClick={goHome} autoFocus>
+                  Main Menu
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {menuOpen && !closedByHost && (
         <div
           className="modal show"
           role="dialog"
@@ -203,12 +255,19 @@ export const GameScreen: React.FC = () => {
                 Resume
               </button>
             </div>
-            {LAUNCHER_URL && (
+            {HOME_URL && (
               <div className="modal-buttons game-menu-extra">
-                <button className="button-secondary" onClick={goToLauncher}>
+                <button className="button-secondary" onClick={goHome}>
                   Main Menu
                 </button>
               </div>
+            )}
+            {lan?.role === "local" && sessionId && (
+              <OpenToLanPanel
+                sessionId={sessionId}
+                lan={lan}
+                onChange={setLan}
+              />
             )}
           </div>
         </div>

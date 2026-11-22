@@ -32,10 +32,11 @@ The desktop build is served by the game server itself. It uses the page's own or
 
 ```bash
 cd ../dungerra-api
-DATA_DIR=data/desktop STATIC_DIR=../dungerra/dist-desktop go run main.go -no-dotenv
+DATA_DIR=data/desktop STATIC_DIR=../dungerra/dist-desktop NAME_AUTH_ENABLED=true \
+  go run main.go -host 127.0.0.1 -allow-lan -no-dotenv
 ```
 
-See `../dungerra-api/docs/decisions/desktop-version.md` for the design.
+With `-allow-lan`, the desktop build adds "Open to LAN" to the game menu and **Join LAN Game** to the game list. A guest who joined from the app gets a **Main Menu** button back to their own server. See `../dungerra-api/docs/decisions/desktop-version.md` for the design.
 
 ## Development
 
@@ -45,7 +46,7 @@ The game uses TypeScript, React, and HTML5 Canvas for rendering. The main compon
 
 - **React Router**: Handles client-side routing between screens
 - **Components**:
-  - `LoginScreen`: sign-in; shows the providers the server enables (`GET /auth/providers`): Google, and/or local username + password accounts (sign in / create account)
+  - `LoginScreen`: sign-in; shows the providers the server enables (`GET /auth/providers`): Google, and/or name-only sign-in (desktop app and LAN play; a joining player's name arrives pre-filled via `?name=`)
   - `LeaderboardScreen`: the lobby, with a Sessions tab and a Leaderboard tab. Creating a game requires choosing a difficulty (`DifficultyPicker`): Peaceful, Easy, Hard, Nightmare or Custom (sliders for each setting, with an Advanced section). The server stores the resolved settings per session; the client mirrors the presets in `config.ts` only for display.
   - `GameScreen`: Main game canvas wrapper
   - `LegendScreen`: Game instructions and tutorial

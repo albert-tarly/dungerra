@@ -7,6 +7,9 @@ import {
   PlayerLeaveMessage,
 } from "../types/socketEvents";
 
+// Sent by a LAN host when it stops hosting (dungerra-api server.LANClosedCloseCode)
+const LAN_CLOSED_CLOSE_CODE = 4001;
+
 export class SocketService {
   private static instance: SocketService;
   private socket: WebSocket | null = null;
@@ -17,6 +20,7 @@ export class SocketService {
     null;
   private _playerLeftHandler: ((message: PlayerLeaveMessage) => void) | null =
     null;
+  private _closedByHostHandler: (() => void) | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 1000;
@@ -127,6 +131,13 @@ export class SocketService {
         event.reason,
       );
 
+      // The LAN host stopped hosting: the game is gone, so don't reconnect
+      if (event.code === LAN_CLOSED_CLOSE_CODE) {
+        this.sessionId = null;
+        this._closedByHostHandler?.();
+        return;
+      }
+
       // Attempt to reconnect if not closed intentionally
       if (
         event.code !== 1000 &&
@@ -194,9 +205,15 @@ export class SocketService {
     this._playerLeftHandler = callback;
   }
 
+  /** A LAN host closed the game this guest plays (desktop app). */
+  public onClosedByHost(callback: () => void): void {
+    this._closedByHostHandler = callback;
+  }
+
   public clearHandlers(): void {
     this._gameStateDeltaHandler = null;
     this._playerJoinedHandler = null;
     this._playerLeftHandler = null;
+    this._closedByHostHandler = null;
   }
 }
