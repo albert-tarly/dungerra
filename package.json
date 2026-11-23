@@ -1,6 +1,6 @@
 {
   "name": "dungeon-game-ts",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Dungerra, a multiplayer dungeon exploration game.",
   "main": "dist/main.js",
   "scripts": {
